@@ -6,14 +6,75 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AE40C7BF2EEACCF500CCE934 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE40C7BE2EEACCF500CCE934 /* WidgetKit.framework */; };
+		AE40C7C12EEACCF500CCE934 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE40C7C02EEACCF500CCE934 /* SwiftUI.framework */; };
+		AE40C7D02EEACCF600CCE934 /* TuduWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AE40C7BC2EEACCF500CCE934 /* TuduWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AE40C7CE2EEACCF600CCE934 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE40C7742EEAAF4700CCE934 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AE40C7BB2EEACCF500CCE934;
+			remoteInfo = TuduWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AE40C7D52EEACCF600CCE934 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AE40C7D02EEACCF600CCE934 /* TuduWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		AE40C77C2EEAAF4700CCE934 /* Tudu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tudu.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE40C7BC2EEACCF500CCE934 /* TuduWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TuduWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE40C7BE2EEACCF500CCE934 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		AE40C7C02EEACCF500CCE934 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AE40C7D12EEACCF600CCE934 /* Exceptions for "TuduWidget" folder in "TuduWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */;
+		};
+		AE40C7D82EEACD9C00CCE934 /* Exceptions for "Tudu" folder in "TuduWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedModels.swift,
+			);
+			target = AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AE40C77E2EEAAF4700CCE934 /* Tudu */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AE40C7D82EEACD9C00CCE934 /* Exceptions for "Tudu" folder in "TuduWidgetExtension" target */,
+			);
 			path = Tudu;
+			sourceTree = "<group>";
+		};
+		AE40C7C22EEACCF500CCE934 /* TuduWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AE40C7D12EEACCF600CCE934 /* Exceptions for "TuduWidget" folder in "TuduWidgetExtension" target */,
+			);
+			path = TuduWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,6 +87,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE40C7B92EEACCF500CCE934 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AE40C7C12EEACCF500CCE934 /* SwiftUI.framework in Frameworks */,
+				AE40C7BF2EEACCF500CCE934 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -33,6 +103,8 @@
 			isa = PBXGroup;
 			children = (
 				AE40C77E2EEAAF4700CCE934 /* Tudu */,
+				AE40C7C22EEACCF500CCE934 /* TuduWidget */,
+				AE40C7BD2EEACCF500CCE934 /* Frameworks */,
 				AE40C77D2EEAAF4700CCE934 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +113,18 @@
 			isa = PBXGroup;
 			children = (
 				AE40C77C2EEAAF4700CCE934 /* Tudu.app */,
+				AE40C7BC2EEACCF500CCE934 /* TuduWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AE40C7BD2EEACCF500CCE934 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AE40C7BE2EEACCF500CCE934 /* WidgetKit.framework */,
+				AE40C7C02EEACCF500CCE934 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -55,10 +137,12 @@
 				AE40C7782EEAAF4700CCE934 /* Sources */,
 				AE40C7792EEAAF4700CCE934 /* Frameworks */,
 				AE40C77A2EEAAF4700CCE934 /* Resources */,
+				AE40C7D52EEACCF600CCE934 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AE40C7CF2EEACCF600CCE934 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AE40C77E2EEAAF4700CCE934 /* Tudu */,
@@ -69,6 +153,28 @@
 			productName = Tudu;
 			productReference = AE40C77C2EEAAF4700CCE934 /* Tudu.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE40C7D22EEACCF600CCE934 /* Build configuration list for PBXNativeTarget "TuduWidgetExtension" */;
+			buildPhases = (
+				AE40C7B82EEACCF500CCE934 /* Sources */,
+				AE40C7B92EEACCF500CCE934 /* Frameworks */,
+				AE40C7BA2EEACCF500CCE934 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AE40C7C22EEACCF500CCE934 /* TuduWidget */,
+			);
+			name = TuduWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = TuduWidgetExtension;
+			productReference = AE40C7BC2EEACCF500CCE934 /* TuduWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +187,9 @@
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					AE40C77B2EEAAF4700CCE934 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					AE40C7BB2EEACCF500CCE934 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
 				};
@@ -100,12 +209,20 @@
 			projectRoot = "";
 			targets = (
 				AE40C77B2EEAAF4700CCE934 /* Tudu */,
+				AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		AE40C77A2EEAAF4700CCE934 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AE40C7BA2EEACCF500CCE934 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +239,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE40C7B82EEACCF500CCE934 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AE40C7CF2EEACCF600CCE934 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */;
+			targetProxy = AE40C7CE2EEACCF600CCE934 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AE40C7852EEAAF4800CCE934 /* Debug */ = {
@@ -245,7 +377,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=macosx*]" = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 545VUAAWM7;
@@ -254,6 +388,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -290,6 +425,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 545VUAAWM7;
@@ -298,6 +434,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -329,6 +466,72 @@
 			};
 			name = Release;
 		};
+		AE40C7D32EEACCF600CCE934 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 545VUAAWM7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TuduWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TuduWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Tudu.TuduWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AE40C7D42EEACCF600CCE934 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 545VUAAWM7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TuduWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TuduWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Tudu.TuduWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -346,6 +549,15 @@
 			buildConfigurations = (
 				AE40C7882EEAAF4800CCE934 /* Debug */,
 				AE40C7892EEAAF4800CCE934 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AE40C7D22EEACCF600CCE934 /* Build configuration list for PBXNativeTarget "TuduWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AE40C7D32EEACCF600CCE934 /* Debug */,
+				AE40C7D42EEACCF600CCE934 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
