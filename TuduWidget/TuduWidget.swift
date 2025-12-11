@@ -73,6 +73,12 @@ struct SmallWidgetView: View {
                 Text("Tudu")
                     .font(.headline)
                     .fontWeight(.semibold)
+                Spacer()
+                Link(destination: URL(string: "tudu://add")!) {
+                    Image(systemName: "plus")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
             }
 
             Divider()
@@ -134,6 +140,13 @@ struct MediumWidgetView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
+                
+                Link(destination: URL(string: "tudu://add")!) {
+                    Image(systemName: "plus")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
+                .padding(.trailing, 8)
 
                 // Stats badge
                 HStack(spacing: 4) {
@@ -218,6 +231,11 @@ struct LargeWidgetView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                 Spacer()
+                Link(destination: URL(string: "tudu://add")!) {
+                    Image(systemName: "plus")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
             }
 
             // Stats Row
