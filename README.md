@@ -20,13 +20,13 @@ A native macOS todo application with widget support, featuring a clean interface
 ### Using Homebrew (Recommended)
 
 ```bash
-brew tap YOUR_USERNAME/tudu
+brew tap AslamSDM/tudu
 brew install --cask tudu
 ```
 
 ### Manual Installation
 
-1. Download the latest release from [Releases](https://github.com/YOUR_USERNAME/tudu/releases)
+1. Download the latest release from [Releases](https://github.com/AslamSDM/tudu/releases)
 2. Unzip the downloaded file
 3. Move `Tudu.app` to your Applications folder
 4. Open Tudu from Applications
@@ -52,7 +52,7 @@ brew install --cask tudu
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/tudu.git
+git clone https://github.com/AslamSDM/tudu.git
 cd tudu
 
 # Open in Xcode
@@ -130,7 +130,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 If you encounter any issues or have questions:
 
-- Open an issue on [GitHub Issues](https://github.com/YOUR_USERNAME/tudu/issues)
+- Open an issue on [GitHub Issues](https://github.com/AslamSDM/tudu/issues)
 - Check the documentation guides in the repository
 
 ## Roadmap
