@@ -6,15 +6,16 @@
     <title>Tudu - Beautiful Todo App with Widget for macOS</title>
     <meta name="description" content="A native macOS todo application with widget support, featuring a clean interface, menu bar integration, and data persistence.">
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="images/app-icon.png">
 </head>
 <body>
     <header>
         <div class="container">
             <nav>
-                <div class="logo">
+                <a href="#" class="logo">
                     <img src="images/app-icon.png" alt="Tudu Icon" width="32" height="32">
                     <span>Tudu</span>
-                </div>
+                </a>
                 <div class="nav-links">
                     <a href="#features">Features</a>
                     <a href="#installation">Installation</a>
@@ -22,94 +23,61 @@
                     <a href="https://github.com/AslamSDM/tudu" target="_blank">GitHub</a>
                 </div>
             </nav>
-            <div class="hero">
-                <h1>Beautiful Todo App with Widget for macOS</h1>
-                <p>A native macOS application with Notification Center widget, menu bar integration, and seamless data persistence.</p>
-                <a href="https://github.com/AslamSDM/tudu/releases" class="cta-button">Download Tudu</a>
-            </div>
         </div>
     </header>
 
-    <section class="features" id="features">
+    <section class="hero">
         <div class="container">
-            <h2 class="section-title">Features</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">💻</div>
-                    <h3>Native macOS App</h3>
-                    <p>Built with SwiftUI for a seamless macOS experience with beautiful UI design.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📱</div>
-                    <h3>Widget Support</h3>
-                    <p>Small, Medium, and Large widgets for quick access to your todos in Notification Center.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Menu Bar Integration</h3>
-                    <p>Quick access to your todos directly from the macOS menu bar for ultimate convenience.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💾</div>
-                    <h3>Data Persistence</h3>
-                    <p>Your todos are automatically saved and synchronized using App Groups technology.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎨</div>
-                    <h3>Beautiful UI</h3>
-                    <p>Modern, clean interface with statistics showing your todo progress at a glance.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔄</div>
-                    <h3>Real-time Sync</h3>
-                    <p>Widget updates automatically when you add, edit, or complete todos in the main app.</p>
+            <h1>Beautiful Todo App<br>for macOS</h1>
+            <p>Stay organized with a native application featuring Notification Center widgets, menu bar integration, and seamless iCloud sync.</p>
+            <a href="https://github.com/AslamSDM/tudu/releases" class="cta-button">Download Tudu</a>
+            
+            <!-- Hero Image / Main Screenshot Placeholder -->
+            <div style="margin-top: 4rem; position: relative;">
+                <div class="screenshot-frame" style="max-width: 900px; margin: 0 auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);">
+                    <img src="images/hero-screenshot.png" alt="Tudu App Interface" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div class="placeholder-text" style="height: 500px; flex-direction: column; gap: 1rem;">
+                        <div style="font-size: 4rem;">💻</div>
+                        <div>App Screenshot</div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="installation" id="installation">
+    <section class="features" id="features">
         <div class="container">
-            <h2 class="section-title">Installation</h2>
-            <div class="installation-steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Using Homebrew (Recommended)</h3>
-                        <p>Install Tudu quickly using Homebrew:</p>
-                        <div class="code-block">
-                            brew tap AslamSDM/tudu<br>
-                            brew install --cask tudu
-                        </div>
-                    </div>
+            <h2 class="section-title">Designed for Focus</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡️</div>
+                    <h3>Native Performance</h3>
+                    <p>Built with SwiftUI for a seamless, lightweight, and responsive macOS experience.</p>
                 </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>Manual Installation</h3>
-                        <p>Download and install manually:</p>
-                        <ol>
-                            <li>Download the latest release from <a href="https://github.com/AslamSDM/tudu/releases" target="_blank">GitHub Releases</a></li>
-                            <li>Unzip the downloaded file</li>
-                            <li>Move <code>Tudu.app</code> to your Applications folder</li>
-                            <li>Open Tudu from Applications</li>
-                        </ol>
-                    </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧩</div>
+                    <h3>Interactive Widgets</h3>
+                    <p>Check off tasks directly from your desktop or Notification Center with interactive widgets.</p>
                 </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Widget Setup</h3>
-                        <p>Set up the Notification Center widget:</p>
-                        <ol>
-                            <li>Run the Tudu app and add some todos</li>
-                            <li>Open <strong>Notification Center</strong> (click time in menu bar)</li>
-                            <li>Scroll to bottom and click <strong>Edit Widgets</strong></li>
-                            <li>Search for "Tudu"</li>
-                            <li>Drag the widget to your desired location</li>
-                            <li>Choose your preferred size (Small, Medium, or Large)</li>
-                        </ol>
-                    </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Menu Bar Access</h3>
+                    <p>Quickly add or view tasks from any screen with the convenient menu bar app.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Smart Sync</h3>
+                    <p>Your data stays in sync across the main app, widgets, and menu bar automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Progress Tracking</h3>
+                    <p>Visual progress bars and completion statistics keep you motivated.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Modern Design</h3>
+                    <p>Clean, clutter-free interface that looks right at home on macOS Sequoia.</p>
                 </div>
             </div>
         </div>
@@ -117,28 +85,67 @@
 
     <section class="screenshots" id="screenshots">
         <div class="container">
-            <h2 class="section-title">Screenshots</h2>
-            <div class="screenshot-container">
-                <div class="screenshot">
-                    <div style="background: #f0f0f0; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 1rem;">
-                        <span>Main App</span>
+            <h2 class="section-title">See it in Action</h2>
+            <div class="screenshot-grid">
+                <div class="screenshot-item">
+                    <div class="screenshot-frame">
+                        <img src="images/screenshot-main.png" alt="Main Application Window" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="placeholder-text">
+                            Main App Window
+                        </div>
                     </div>
-                    <h3>Main Application</h3>
-                    <p>Beautiful todo list with statistics</p>
+                    <h3>Task Management</h3>
+                    <p>Clean list view with easy editing</p>
                 </div>
-                <div class="screenshot">
-                    <div style="background: #f0f0f0; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 1rem;">
-                        <span>Widget</span>
+                <div class="screenshot-item">
+                    <div class="screenshot-frame">
+                        <img src="images/screenshot-widget.png" alt="Desktop Widgets" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="placeholder-text">
+                            Desktop Widgets
+                        </div>
                     </div>
-                    <h3>Notification Widget</h3>
-                    <p>Access todos from Notification Center</p>
+                    <h3>Desktop Widgets</h3>
+                    <p>Small, medium, and large sizes</p>
                 </div>
-                <div class="screenshot">
-                    <div style="background: #f0f0f0; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px; margin-bottom: 1rem;">
-                        <span>Menu Bar</span>
+                <div class="screenshot-item">
+                    <div class="screenshot-frame">
+                        <img src="images/screenshot-menu.png" alt="Menu Bar Interface" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="placeholder-text">
+                            Menu Bar App
+                        </div>
                     </div>
-                    <h3>Menu Bar</h3>
-                    <p>Quick access from menu bar</p>
+                    <h3>Quick Access</h3>
+                    <p>Always available in your menu bar</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation" id="installation">
+        <div class="container">
+            <h2 class="section-title">Get Started</h2>
+            <div class="installation-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Install via Homebrew</h3>
+                        <p>The easiest way to install Tudu is using Homebrew.</p>
+                        <div class="code-block">brew tap AslamSDM/tudu
+brew install --cask tudu</div>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Launch & Enable Widgets</h3>
+                        <p>Open Tudu from your Applications folder. To add widgets:</p>
+                        <ol style="margin-top: 10px; margin-left: 20px; color: var(--text-gray); font-size: 0.95rem;">
+                            <li>Open Notification Center</li>
+                            <li>Click "Edit Widgets"</li>
+                            <li>Search for "Tudu"</li>
+                            <li>Drag your preferred widget size to the desktop</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
         </div>
@@ -147,17 +154,16 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <div class="logo">
-                    <img src="images/app-icon.png" alt="Tudu Icon" width="32" height="32">
+                <a href="#" class="logo">
+                    <img src="images/app-icon.png" alt="Tudu Icon" width="24" height="24">
                     <span>Tudu</span>
-                </div>
-                <p>A beautiful, native macOS todo application with widget support</p>
+                </a>
                 <div class="footer-links">
-                    <a href="https://github.com/AslamSDM/tudu" target="_blank">GitHub Repository</a>
-                    <a href="https://github.com/AslamSDM/tudu/issues" target="_blank">Report Issues</a>
-                    <a href="https://github.com/AslamSDM/tudu/blob/main/README.md" target="_blank">Documentation</a>
+                    <a href="https://github.com/AslamSDM/tudu" target="_blank">GitHub</a>
+                    <a href="https://github.com/AslamSDM/tudu/issues" target="_blank">Support</a>
+                    <a href="https://github.com/AslamSDM/tudu/blob/main/LICENSE" target="_blank">License</a>
                 </div>
-                <p class="copyright">© 2025 Tudu. Made with ❤️ for macOS users.</p>
+                <p class="copyright">© 2025 AslamSDM. Open source software.</p>
             </div>
         </div>
     </footer>
