@@ -59,7 +59,7 @@ Then set the server URL in the Settings of each app.
 
 ### Quick add shortcuts
 
-Type these in any quick-add field (main window, menu bar, Android):
+Type these in a quick-add field on the Mac (main window or menu bar):
 `#tag`, `!high` / `!low`, `@today`, `@tomorrow`, `@fri`, `@next week`.
 For example: `Pay rent #home !high @fri`.
 
