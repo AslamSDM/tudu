@@ -28,6 +28,41 @@ widget through an App Group.
 - **Data persistence** — tasks are stored as JSON in an App Group so the app and
   widget stay in sync, with one-time migration from older storage locations.
 
+## Sync (Mac ⇄ Android)
+
+Tudu syncs through a small Cloudflare Worker (`worker/`), with one SQLite
+Durable Object for each sync space. You do not need an account. A secret **sync
+key** links your devices.
+
+1. On the Mac, open **Settings → Sync** and click **Create a new sync key**.
+2. In Tudu for Android (`android/`), open **Settings → Sync**. Scan the QR code
+   shown on the Mac, or paste the key.
+3. Changes sync after each edit, every minute while the app runs, and when the
+   widget refreshes. Widget check-offs sync even when the app is closed.
+
+Conflicts resolve per task: the most recent edit wins. Deleted tasks are kept
+as tombstones, so the delete reaches every device. The API is documented in
+[`docs/SYNC_API.md`](docs/SYNC_API.md).
+
+**Keep the key private.** Anyone with the key can read and change your tasks.
+
+### Deploying your own Worker
+
+```bash
+cd worker
+npm install
+npm test             # vitest + workerd
+npx wrangler deploy  # prints https://tudu-sync.<you>.workers.dev
+```
+
+Then set the server URL in the Settings of each app.
+
+### Quick add shortcuts
+
+Type these in any quick-add field (main window, menu bar, Android):
+`#tag`, `!high` / `!low`, `@today`, `@tomorrow`, `@fri`, `@next week`.
+For example: `Pay rent #home !high @fri`.
+
 ## Screenshots
 
 [Add screenshots of the app and widgets here]

@@ -15,11 +15,11 @@ struct TuduApp: App {
         WindowGroup(id: MainWindow.id) {
             ContentView()
                 .frame(
-                    minWidth: 520, idealWidth: 780,
-                    minHeight: 460, idealHeight: 680
+                    minWidth: 640, idealWidth: 900,
+                    minHeight: 460, idealHeight: 640
                 )
         }
-        .defaultSize(width: 780, height: 680)
+        .defaultSize(width: 900, height: 640)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("New Task") {

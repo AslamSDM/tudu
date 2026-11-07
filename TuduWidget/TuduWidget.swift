@@ -2,50 +2,148 @@ import WidgetKit
 import SwiftUI
 import AppIntents
 
+// MARK: - Configuration
+
+enum WidgetListOption: String, AppEnum {
+    case all, today, highPriority
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "List"
+    static var caseDisplayRepresentations: [WidgetListOption: DisplayRepresentation] = [
+        .all: "All Tasks",
+        .today: "Today",
+        .highPriority: "High Priority",
+    ]
+
+    var title: String {
+        switch self {
+        case .all: return "Tudu"
+        case .today: return "Today"
+        case .highPriority: return "Priority"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .all: return "checklist"
+        case .today: return "sun.max.fill"
+        case .highPriority: return "flag.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .all: return .blue
+        case .today: return .orange
+        case .highPriority: return .red
+        }
+    }
+
+    func contains(_ todo: Todo) -> Bool {
+        switch self {
+        case .all: return true
+        case .today: return SmartList.today.contains(todo)
+        case .highPriority: return todo.priority == .high
+        }
+    }
+}
+
+struct TuduWidgetConfigIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource = "Tudu Widget"
+    static var description = IntentDescription("Choose which tasks to show.")
+
+    @Parameter(title: "List", default: .all)
+    var list: WidgetListOption
+
+    @Parameter(title: "Show Completed", default: false)
+    var showCompleted: Bool
+}
+
 // MARK: - Timeline
 
-struct TodoWidgetProvider: TimelineProvider {
+struct TodoWidgetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> TodoWidgetEntry {
-        TodoWidgetEntry(date: Date(), todos: SampleData.todos)
+        TodoWidgetEntry(date: Date(), todos: SampleData.todos, config: TuduWidgetConfigIntent(), syncFailed: false)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (TodoWidgetEntry) -> Void) {
+    func snapshot(for configuration: TuduWidgetConfigIntent, in context: Context) async -> TodoWidgetEntry {
         let todos = context.isPreview ? SampleData.todos : SharedTodoData.loadTodos()
-        completion(TodoWidgetEntry(date: Date(), todos: todos))
+        return TodoWidgetEntry(date: Date(), todos: todos, config: configuration, syncFailed: false)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<TodoWidgetEntry>) -> Void) {
-        let entry = TodoWidgetEntry(date: Date(), todos: SharedTodoData.loadTodos())
-        let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date())
-            ?? Date().addingTimeInterval(15 * 60)
-        completion(Timeline(entries: [entry], policy: .after(refresh)))
+    func timeline(for configuration: TuduWidgetConfigIntent, in context: Context) async -> Timeline<TodoWidgetEntry> {
+        // Pull from the server so the widget stays fresh even when the app is
+        // not running. Failures fall back to local data.
+        var syncFailed = false
+        if SyncConfig.isEnabled {
+            do { try await SyncClient.sync(timeout: 8) } catch { syncFailed = true }
+        }
+
+        let now = Date()
+        let entry = TodoWidgetEntry(date: now, todos: SharedTodoData.loadTodos(), config: configuration, syncFailed: syncFailed)
+        let refresh = min(
+            now.addingTimeInterval(15 * 60),
+            Calendar.current.startOfDay(for: now.addingTimeInterval(24 * 3600))
+        )
+        return Timeline(entries: [entry], policy: .after(refresh))
     }
 }
 
 struct TodoWidgetEntry: TimelineEntry {
     let date: Date
     let todos: [Todo]
+    let config: TuduWidgetConfigIntent
+    let syncFailed: Bool
+
+    var list: WidgetListOption { config.list }
+
+    var scoped: [Todo] { todos.filter(list.contains) }
+
+    /// Pending tasks: overdue first, then by due date, then priority, then newest.
+    var pending: [Todo] {
+        scoped.filter { !$0.isCompleted }.sorted { lhs, rhs in
+            if lhs.isOverdue != rhs.isOverdue { return lhs.isOverdue }
+            switch (lhs.dueDate, rhs.dueDate) {
+            case let (l?, r?) where l != r: return l < r
+            case (_?, nil): return true
+            case (nil, _?): return false
+            default: break
+            }
+            if lhs.priority != rhs.priority { return lhs.priority.rawValue > rhs.priority.rawValue }
+            return lhs.createdAt > rhs.createdAt
+        }
+    }
+
+    var completed: [Todo] {
+        scoped.filter(\.isCompleted).sorted { ($0.completedAt ?? $0.updatedAt) > ($1.completedAt ?? $1.updatedAt) }
+    }
+
+    /// Rows to show: pending, then (optionally) recently completed.
+    func rows(limit: Int) -> [Todo] {
+        let base = config.showCompleted ? pending + completed : pending
+        return Array(base.prefix(limit))
+    }
+
+    var progress: Double {
+        scoped.isEmpty ? 0 : Double(completed.count) / Double(scoped.count)
+    }
+
+    var overdueCount: Int { pending.filter(\.isOverdue).count }
 }
 
 // MARK: - Entry view
 
 struct TodoWidgetEntryView: View {
     var entry: TodoWidgetEntry
-    @Environment(\.widgetFamily) var widgetFamily
+    @Environment(\.widgetFamily) private var family
 
     var body: some View {
         Group {
-            switch widgetFamily {
-            case .systemSmall:
-                SmallWidgetView(entry: entry)
-            case .systemMedium:
-                MediumWidgetView(entry: entry)
-            case .systemLarge:
-                LargeWidgetView(entry: entry)
-            case .systemExtraLarge, .systemExtraLargePortrait:
-                LargeWidgetView(entry: entry)
-            @unknown default:
-                SmallWidgetView(entry: entry)
+            switch family {
+            case .systemSmall: SmallWidgetView(entry: entry)
+            case .systemMedium: MediumWidgetView(entry: entry)
+            case .systemLarge: ListWidgetView(entry: entry, limit: 8)
+            case .systemExtraLarge, .systemExtraLargePortrait: ListWidgetView(entry: entry, limit: 9, columns: 2)
+            @unknown default: SmallWidgetView(entry: entry)
             }
         }
         .widgetURL(URL(string: "tudu://open"))
@@ -57,51 +155,56 @@ struct TodoWidgetEntryView: View {
 struct SmallWidgetView: View {
     let entry: TodoWidgetEntry
 
-    private var pending: [Todo] { entry.todos.filter { !$0.isCompleted } }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            WidgetHeader(pendingCount: pending.count, total: entry.todos.count)
-
-            Divider()
-
-            if entry.todos.isEmpty {
-                WidgetEmptyState(message: "No tasks")
-            } else if pending.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.title)
-                        .foregroundStyle(.green)
-                    Text("All done!")
-                        .font(.headline)
-                    Text("\(entry.todos.count) completed")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                ZStack {
+                    WidgetRing(progress: entry.progress, tint: entry.list.tint, lineWidth: 5)
+                    Text("\(entry.pending.count)")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
                 }
+                .frame(width: 50, height: 50)
+
                 Spacer()
-            } else {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("\(pending.count)")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
+
+                AddLink(tint: entry.list.tint)
+            }
+
+            Spacer(minLength: 6)
+
+            HStack(spacing: 4) {
+                Image(systemName: entry.list.symbol)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(entry.list.tint)
+                    .widgetAccentable()
+                Text(entry.pending.isEmpty ? "All done" : "\(entry.list.title) · to do")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                if entry.overdueCount > 0 {
+                    Text("· \(entry.overdueCount) late")
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.orange)
-                    Text("pending")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
+            }
+            .lineLimit(1)
 
-                if let next = pending.first {
-                    HStack(alignment: .top, spacing: 6) {
-                        ToggleTodoButton(todo: next)
-                        Text(next.displayTitle)
-                            .font(.caption)
-                            .lineLimit(2)
-                    }
+            if let next = entry.pending.first {
+                HStack(alignment: .top, spacing: 6) {
+                    ToggleTodoButton(todo: next, size: 15)
+                    Text(next.displayTitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .lineLimit(2)
                 }
-
-                Spacer()
+                .padding(.top, 4)
+            } else {
+                Text(entry.scoped.isEmpty ? "No tasks yet" : "Nothing left 🎉")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
             }
         }
-        .padding()
     }
 }
 
@@ -110,206 +213,292 @@ struct SmallWidgetView: View {
 struct MediumWidgetView: View {
     let entry: TodoWidgetEntry
 
-    private var pending: [Todo] { entry.todos.filter { !$0.isCompleted } }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            WidgetHeader(pendingCount: pending.count, total: entry.todos.count)
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                WidgetTitle(entry: entry)
+                Spacer(minLength: 0)
+                Text("\(entry.pending.count)")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(entry.list.tint.gradient)
+                    .widgetAccentable()
+                Text(subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(entry.overdueCount > 0 ? .orange : .secondary)
+                    .lineLimit(1)
+                WidgetProgressBar(progress: entry.progress, tint: entry.list.tint)
+            }
+            .frame(width: 104)
 
-            Divider()
-
-            if entry.todos.isEmpty {
-                WidgetEmptyState(message: "No tasks yet!")
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.todos.prefix(4)) { todo in
-                        TodoWidgetRow(todo: todo)
-                    }
-
-                    if entry.todos.count > 4 {
-                        Text("+\(entry.todos.count - 4) more")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, 22)
-                    }
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Spacer()
+                    AddLink(tint: entry.list.tint)
                 }
-                Spacer()
+                .frame(height: 16)
+
+                let rows = entry.rows(limit: 4)
+                if rows.isEmpty {
+                    WidgetEmptyState(hasTasks: !entry.scoped.isEmpty)
+                } else {
+                    ForEach(rows) { TodoWidgetRow(todo: $0) }
+                    Spacer(minLength: 0)
+                }
             }
         }
-        .padding()
+    }
+
+    private var subtitle: String {
+        if entry.overdueCount > 0 { return "\(entry.overdueCount) overdue" }
+        return entry.pending.count == 1 ? "task to do" : "tasks to do"
     }
 }
 
-// MARK: - Large
+// MARK: - Large / extra large
 
-struct LargeWidgetView: View {
+struct ListWidgetView: View {
     let entry: TodoWidgetEntry
-
-    private var pending: [Todo] { entry.todos.filter { !$0.isCompleted } }
-    private var completed: [Todo] { entry.todos.filter(\.isCompleted) }
+    let limit: Int
+    var columns = 1
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            WidgetHeader(pendingCount: pending.count, total: entry.todos.count)
-
-            HStack(spacing: 8) {
-                StatBadge(title: "Total", value: entry.todos.count, color: .blue)
-                StatBadge(title: "Pending", value: pending.count, color: .orange)
-                StatBadge(title: "Done", value: completed.count, color: .green)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center) {
+                WidgetTitle(entry: entry)
+                Spacer()
+                if entry.syncFailed {
+                    Image(systemName: "exclamationmark.icloud")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                AddLink(tint: entry.list.tint)
             }
 
-            Divider()
+            HStack(spacing: 8) {
+                StatPill(value: entry.pending.count, title: "To do", color: entry.list.tint)
+                StatPill(value: entry.overdueCount, title: "Overdue", color: .orange)
+                StatPill(value: entry.completed.count, title: "Done", color: .green)
+            }
 
-            if entry.todos.isEmpty {
-                WidgetEmptyState(message: "No tasks yet!")
+            let rows = entry.rows(limit: limit * columns)
+            if rows.isEmpty {
+                WidgetEmptyState(hasTasks: !entry.scoped.isEmpty)
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if !pending.isEmpty {
-                            SectionLabel(title: "Pending", color: .orange)
-                            ForEach(pending.prefix(7)) { todo in
-                                TodoWidgetRow(todo: todo)
-                            }
-                        }
-
-                        if !completed.isEmpty {
-                            SectionLabel(title: "Completed", color: .green)
-                                .padding(.top, pending.isEmpty ? 0 : 4)
-                            ForEach(completed.prefix(pending.isEmpty ? 8 : 3)) { todo in
-                                TodoWidgetRow(todo: todo)
-                            }
-                        }
+                if columns > 1 {
+                    let split = (rows.count + 1) / 2
+                    HStack(alignment: .top, spacing: 16) {
+                        rowStack(Array(rows.prefix(split)))
+                        rowStack(Array(rows.dropFirst(split)))
                     }
+                } else {
+                    rowStack(rows)
+                }
+                Spacer(minLength: 0)
+                let total = entry.config.showCompleted ? entry.pending.count + entry.completed.count : entry.pending.count
+                if total > rows.count {
+                    Text("+\(total - rows.count) more")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 24)
                 }
             }
         }
-        .padding()
+    }
+
+    private func rowStack(_ todos: [Todo]) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(todos) { TodoWidgetRow(todo: $0, showsNotes: true) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 // MARK: - Components
 
-struct WidgetHeader: View {
-    let pendingCount: Int
-    let total: Int
+struct WidgetTitle: View {
+    let entry: TodoWidgetEntry
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "checklist")
-                .foregroundStyle(.blue)
-            Text("Tudu")
-                .font(.headline)
-                .fontWeight(.semibold)
+            Image(systemName: entry.list.symbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 20, height: 20)
+                .background(entry.list.tint.gradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .widgetAccentable()
+            Text(entry.list.title)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+        }
+    }
+}
 
-            Spacer()
+struct AddLink: View {
+    let tint: Color
 
-            Link(destination: URL(string: "tudu://add")!) {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(.blue)
-            }
-            .help("Add a task")
+    var body: some View {
+        Link(destination: URL(string: "tudu://add")!) {
+            Image(systemName: "plus")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(tint)
+                .frame(width: 22, height: 22)
+                .background(tint.opacity(0.15), in: Circle())
+                .widgetAccentable()
         }
     }
 }
 
 struct TodoWidgetRow: View {
     let todo: Todo
+    var showsNotes = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            ToggleTodoButton(todo: todo)
+            ToggleTodoButton(todo: todo, size: 15)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(todo.displayTitle)
-                    .font(.caption)
-                    .strikethrough(todo.isCompleted)
-                    .foregroundStyle(todo.isCompleted ? .secondary : .primary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    if todo.priority == .high && !todo.isCompleted {
+                        Image(systemName: "flag.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.red)
+                    }
+                    Text(todo.displayTitle)
+                        .font(.system(size: 12.5, weight: .medium))
+                        .strikethrough(todo.isCompleted)
+                        .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+                        .lineLimit(1)
+                }
 
-                if let dueDate = todo.dueDate, !todo.isCompleted {
-                    Text(dueText(dueDate))
-                        .font(.caption2)
-                        .foregroundStyle(todo.isOverdue ? .orange : .secondary)
+                if let meta = metaText {
+                    Text(meta)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(todo.isOverdue || todo.isDueToday ? .orange : .secondary)
+                        .lineLimit(1)
                 }
             }
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 1)
+    }
+
+    private var metaText: String? {
+        var parts: [String] = []
+        if let due = todo.dueDate, !todo.isCompleted { parts.append(dueText(due)) }
+        if showsNotes, !todo.tags.isEmpty { parts.append(todo.tags.map { "#\($0)" }.joined(separator: " ")) }
+        if showsNotes, parts.isEmpty, !todo.notes.isEmpty { parts.append(todo.notes) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private func dueText(_ date: Date) -> String {
         if todo.isOverdue { return "Overdue" }
         let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Due today" }
-        if calendar.isDateInTomorrow(date) { return "Due tomorrow" }
-        return "Due \(date.formatted(.dateTime.month(.abbreviated).day()))"
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInTomorrow(date) { return "Tomorrow" }
+        return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
     }
 }
 
 struct ToggleTodoButton: View {
     let todo: Todo
+    var size: CGFloat = 14
 
     var body: some View {
         Button(intent: ToggleTodoIntent(taskID: todo.id.uuidString)) {
-            Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 13))
-                .foregroundStyle(checkboxColor)
+            ZStack {
+                Circle()
+                    .strokeBorder(todo.isCompleted ? Color.green : ringColor, lineWidth: 1.4)
+                if todo.isCompleted {
+                    Circle().fill(Color.green)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: size * 0.5, weight: .heavy))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: size, height: size)
+            .widgetAccentable()
         }
         .buttonStyle(.plain)
     }
 
-    private var checkboxColor: Color {
-        if todo.isCompleted { return .green }
-        return todo.isOverdue ? .orange : .blue
+    private var ringColor: Color {
+        if todo.isOverdue { return .orange }
+        return todo.priority == .high ? .red : .secondary
     }
 }
 
-struct StatBadge: View {
-    let title: String
+struct WidgetRing: View {
+    let progress: Double
+    let tint: Color
+    var lineWidth: CGFloat = 5
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(tint.opacity(0.16), lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: max(0.0001, min(1, progress)))
+                .stroke(progress >= 1 ? Color.green : tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .widgetAccentable()
+        }
+    }
+}
+
+struct WidgetProgressBar: View {
+    let progress: Double
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(tint.opacity(0.15))
+                Capsule()
+                    .fill(progress >= 1 ? Color.green : tint)
+                    .frame(width: max(4, proxy.size.width * progress))
+                    .widgetAccentable()
+            }
+        }
+        .frame(height: 5)
+    }
+}
+
+struct StatPill: View {
     let value: Int
+    let title: String
     let color: Color
 
     var body: some View {
-        VStack(spacing: 2) {
+        HStack(spacing: 5) {
             Text("\(value)")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(color)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(value == 0 ? .secondary : color)
             Text(title)
-                .font(.caption2)
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
-        .background(color.opacity(0.12))
-        .cornerRadius(8)
-    }
-}
-
-struct SectionLabel: View {
-    let title: String
-    let color: Color
-
-    var body: some View {
-        Text(title)
-            .font(.caption)
-            .fontWeight(.semibold)
-            .foregroundStyle(color)
+        .background(color.opacity(value == 0 ? 0.06 : 0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
 struct WidgetEmptyState: View {
-    let message: String
+    let hasTasks: Bool
 
     var body: some View {
         VStack(spacing: 4) {
-            Image(systemName: "checkmark.circle")
-                .font(.title)
-                .foregroundStyle(.green)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Image(systemName: hasTasks ? "checkmark.seal.fill" : "sparkles")
+                .font(.title2)
+                .foregroundStyle(hasTasks ? .green : .secondary)
+            Text(hasTasks ? "All done!" : "No tasks yet")
+                .font(.caption.weight(.semibold))
+            if !hasTasks {
+                Text("Tap + to add one")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -321,13 +510,13 @@ struct TuduWidget: Widget {
     let kind: String = "TuduWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: TodoWidgetProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: TuduWidgetConfigIntent.self, provider: TodoWidgetProvider()) { entry in
             TodoWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Tudu")
-        .description("Keep track of your tasks at a glance, and tick them off right from the widget.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .description("Your tasks at a glance. Tick them off right from the widget.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])
     }
 }
 
@@ -335,28 +524,28 @@ struct TuduWidget: Widget {
 
 private enum SampleData {
     static let todos: [Todo] = [
-        Todo(title: "Buy groceries", priority: .high, dueDate: Date().addingTimeInterval(3600)),
-        Todo(title: "Finish project report", priority: .high),
-        Todo(title: "Review pull requests", priority: .low),
+        Todo(title: "Buy groceries", priority: .high, dueDate: Date().addingTimeInterval(3600), tags: ["home"]),
+        Todo(title: "Finish project report", priority: .high, dueDate: Date().addingTimeInterval(-3600)),
+        Todo(title: "Review pull requests", priority: .low, tags: ["work"]),
         Todo(title: "Call mom", isCompleted: true, completedAt: Date()),
-        Todo(title: "Plan sprint retrospective"),
+        Todo(title: "Plan sprint retrospective", dueDate: Date().addingTimeInterval(86400 * 2)),
     ]
 }
 
 #Preview("Small", as: .systemSmall) {
     TuduWidget()
 } timeline: {
-    TodoWidgetEntry(date: .now, todos: SampleData.todos)
+    TodoWidgetEntry(date: .now, todos: SampleData.todos, config: TuduWidgetConfigIntent(), syncFailed: false)
 }
 
 #Preview("Medium", as: .systemMedium) {
     TuduWidget()
 } timeline: {
-    TodoWidgetEntry(date: .now, todos: SampleData.todos)
+    TodoWidgetEntry(date: .now, todos: SampleData.todos, config: TuduWidgetConfigIntent(), syncFailed: false)
 }
 
 #Preview("Large", as: .systemLarge) {
     TuduWidget()
 } timeline: {
-    TodoWidgetEntry(date: .now, todos: SampleData.todos)
+    TodoWidgetEntry(date: .now, todos: SampleData.todos, config: TuduWidgetConfigIntent(), syncFailed: false)
 }

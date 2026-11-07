@@ -5,6 +5,12 @@ import AppKit
 
 /// Handles `tudu://` deep links coming from the widgets (for example the "+"
 /// button) and holds the small pieces of cross-view app state.
+struct PendingPairing: Identifiable {
+    let id = UUID()
+    let key: String
+    let server: URL
+}
+
 @MainActor
 final class AppState: ObservableObject {
     static let shared = AppState()
@@ -19,6 +25,10 @@ final class AppState: ObservableObject {
     @Published var exportRequest = 0
     @Published var importRequest = 0
 
+    /// Set when a `tudu://sync?...` link arrives; the main window asks the
+    /// user to confirm before joining the sync space.
+    @Published var pendingPairing: PendingPairing?
+
     /// Installed by the main window so AppKit code (the menu bar item, the Dock
     /// icon) can reopen the window after the user closed it.
     var openMainWindow: (() -> Void)?
@@ -29,6 +39,11 @@ final class AppState: ObservableObject {
         guard url.scheme?.lowercased() == "tudu" else { return }
 
         switch url.host?.lowercased() {
+        case "sync":
+            if let pairing = SyncConfig.parsePairingURL(url) {
+                pendingPairing = PendingPairing(key: pairing.key, server: pairing.server)
+                showMainWindow()
+            }
         case "add":
             requestNewTask()
         case "open", .none:

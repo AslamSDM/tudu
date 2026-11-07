@@ -55,6 +55,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				SharedModels.swift,
+				SyncClient.swift,
 			);
 			target = AE40C7BB2EEACCF500CCE934 /* TuduWidgetExtension */;
 		};

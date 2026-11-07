@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         observePreferences()
         syncMenuBarItem()
+        SyncEngine.shared.start()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -44,9 +45,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
             .store(in: &cancellables)
+
+        prefs.$menuBarShowsCount
+            .combineLatest(TodoStore.shared.$todos)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _, _ in
+                MainActor.assumeIsolated { self?.updateStatusButton() }
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Menu bar item
+
+    /// Shows the pending count next to the icon (overdue tasks tint it).
+    @MainActor
+    private func updateStatusButton() {
+        guard let button = statusItem?.button else { return }
+        let stats = TodoStore.shared.stats
+        if AppPreferences.shared.menuBarShowsCount && stats.pending > 0 {
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
+                .baselineOffset: 0.5,
+            ]
+            button.attributedTitle = NSAttributedString(string: " \(stats.pending)", attributes: attributes)
+            button.imagePosition = .imageLeading
+            statusItem?.length = NSStatusItem.variableLength
+        } else {
+            button.title = ""
+            button.imagePosition = .imageOnly
+            statusItem?.length = NSStatusItem.squareLength
+        }
+        button.toolTip = stats.overdue > 0
+            ? "Tudu — \(stats.pending) to do, \(stats.overdue) overdue"
+            : "Tudu — \(stats.pending) to do"
+    }
 
     private func syncMenuBarItem() {
         if AppPreferences.shared.showMenuBarIcon {
@@ -61,13 +93,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            let image = NSImage(systemSymbolName: "checklist", accessibilityDescription: "Tudu")
+            let image = NSImage(systemSymbolName: "checkmark.circle", accessibilityDescription: "Tudu")
             image?.isTemplate = true
             button.image = image
             button.target = self
             button.action = #selector(togglePopover)
         }
         statusItem = item
+        MainActor.assumeIsolated { updateStatusButton() }
 
         let popover = NSPopover()
         popover.behavior = .transient

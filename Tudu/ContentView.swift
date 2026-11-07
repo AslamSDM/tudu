@@ -9,33 +9,27 @@ struct ContentView: View {
     @ObservedObject private var appState = AppState.shared
     @ObservedObject private var prefs = AppPreferences.shared
 
-    @State private var newTitle = ""
     @State private var editorTarget: Todo?
     @State private var isAddingTask = false
     @State private var showClearCompleted = false
     @State private var isExporting = false
     @State private var isImporting = false
     @State private var alert: InfoAlert?
-    @FocusState private var newTitleFocused: Bool
-
-    private var trimmedNewTitle: String {
-        newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                header
-                Divider()
-                addBar
-                Divider()
-                content
-            }
-            .navigationTitle("Tudu")
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView()
+                .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        } detail: {
+            TaskListView(
+                onEdit: { editorTarget = $0 },
+                onClearCompleted: clearCompleted
+            )
             .toolbar { toolbarContent }
             .searchable(text: $store.searchText, placement: .toolbar, prompt: "Search tasks")
         }
-        .frame(minWidth: 520, minHeight: 460)
+        .frame(minWidth: 640, minHeight: 460)
         .sheet(item: $editorTarget) { todo in
             TodoEditorView(
                 todo: todo,
@@ -53,24 +47,30 @@ struct ContentView: View {
             defaultFilename: "Tudu Tasks"
         ) { result in
             if case .failure(let error) = result {
-                alert = InfoAlert(
-                    title: "Export Failed",
-                    message: error.localizedDescription
-                )
+                alert = InfoAlert(title: "Export Failed", message: error.localizedDescription)
             }
         }
-        .fileImporter(
-            isPresented: $isImporting,
-            allowedContentTypes: [.json]
-        ) { result in
+        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
             handleImport(result)
         }
         .alert(item: $alert) { info in
-            Alert(
-                title: Text(info.title),
-                message: Text(info.message),
-                dismissButton: .default(Text("OK"))
-            )
+            Alert(title: Text(info.title), message: Text(info.message), dismissButton: .default(Text("OK")))
+        }
+        .alert(
+            "Join sync space?",
+            isPresented: Binding(
+                get: { appState.pendingPairing != nil },
+                set: { if !$0 { appState.pendingPairing = nil } }
+            ),
+            presenting: appState.pendingPairing
+        ) { pairing in
+            Button("Join") {
+                SyncEngine.shared.connect(key: pairing.key, serverURL: pairing.server)
+                appState.pendingPairing = nil
+            }
+            Button("Cancel", role: .cancel) { appState.pendingPairing = nil }
+        } message: { pairing in
+            Text("Tudu will merge your tasks with the sync space on \(pairing.server.host() ?? "the server"). Your tasks will sync across every device that uses this key.")
         }
         .confirmationDialog(
             "Delete all completed tasks?",
@@ -80,103 +80,16 @@ struct ContentView: View {
             Button("Delete Completed", role: .destructive) { store.deleteCompleted() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes every completed task.")
+            Text("This removes every completed task on all synced devices.")
         }
-        .onChange(of: appState.newTaskRequest) { _, _ in
-            newTitleFocused = true
-        }
-        .onChange(of: appState.detailedNewTaskRequest) { _, _ in
-            isAddingTask = true
-        }
-        .onChange(of: appState.exportRequest) { _, _ in
-            isExporting = true
-        }
-        .onChange(of: appState.importRequest) { _, _ in
-            isImporting = true
-        }
-        .onOpenURL { url in
-            appState.handle(url)
-        }
+        .onChange(of: appState.detailedNewTaskRequest) { _, _ in isAddingTask = true }
+        .onChange(of: appState.exportRequest) { _, _ in isExporting = true }
+        .onChange(of: appState.importRequest) { _, _ in isImporting = true }
+        .onOpenURL { appState.handle($0) }
         .background(MainWindowBridge())
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            // Pick up changes made from the widget while the app was in the background.
             store.reload()
         }
-    }
-
-    // MARK: Header
-
-    private var header: some View {
-        HStack(spacing: 16) {
-            ProgressRing(progress: store.stats.progress)
-                .frame(width: 48, height: 48)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(headerTitle)
-                    .font(.title3.weight(.semibold))
-                Text(headerSubtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if store.stats.overdue > 0 {
-                Label("\(store.stats.overdue) overdue", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.12), in: Capsule())
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-    }
-
-    private var headerTitle: String {
-        let pending = store.stats.pending
-        if store.stats.total == 0 { return "No tasks yet" }
-        if pending == 0 { return "All done!" }
-        return "\(pending) task\(pending == 1 ? "" : "s") left"
-    }
-
-    private var headerSubtitle: String {
-        var parts = ["\(store.stats.completed) of \(store.stats.total) complete"]
-        if store.stats.dueToday > 0 { parts.append("\(store.stats.dueToday) due today") }
-        return parts.joined(separator: " • ")
-    }
-
-    // MARK: Add bar
-
-    private var addBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "plus.circle.fill")
-                .font(.title3)
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
-
-            TextField("Add a task…", text: $newTitle)
-                .textFieldStyle(.plain)
-                .focused($newTitleFocused)
-                .onSubmit(addTask)
-
-            if !trimmedNewTitle.isEmpty {
-                Button("Add", action: addTask)
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .background(.bar)
-    }
-
-    private func addTask() {
-        guard let todo = store.add(title: newTitle) else { return }
-        newTitle = ""
-        newTitleFocused = true
-        _ = todo
     }
 
     private func clearCompleted() {
@@ -197,21 +110,13 @@ struct ContentView: View {
             defer { if accessing { url.stopAccessingSecurityScopedResource() } }
 
             guard let data = try? Data(contentsOf: url) else {
-                alert = InfoAlert(
-                    title: "Import Failed",
-                    message: "Could not read the selected file."
-                )
+                alert = InfoAlert(title: "Import Failed", message: "Could not read the selected file.")
                 return
             }
-
             guard let imported = try? JSONDecoder().decode([Todo].self, from: data) else {
-                alert = InfoAlert(
-                    title: "Import Failed",
-                    message: "That file does not contain a valid Tudu task list."
-                )
+                alert = InfoAlert(title: "Import Failed", message: "That file does not contain a valid Tudu task list.")
                 return
             }
-
             let added = store.importTodos(imported)
             alert = InfoAlert(
                 title: "Import Complete",
@@ -220,92 +125,10 @@ struct ContentView: View {
         }
     }
 
-    // MARK: Content
-
-    @ViewBuilder
-    private var content: some View {
-        if store.todos.isEmpty {
-            EmptyStateView(
-                title: "No Tasks Yet",
-                systemImage: "checklist",
-                message: "Add your first task above to get started."
-            )
-        } else if store.visibleTodos.isEmpty {
-            if !store.searchText.isEmpty {
-                ContentUnavailableView.search(text: store.searchText)
-            } else if store.filter == .completed {
-                EmptyStateView(
-                    title: "Nothing Completed",
-                    systemImage: "checkmark.circle",
-                    message: "Completed tasks will show up here."
-                )
-            } else {
-                EmptyStateView(
-                    title: "All Caught Up",
-                    systemImage: "checkmark.seal",
-                    message: "You have no active tasks right now."
-                )
-            }
-        } else {
-            List {
-                if !store.visiblePending.isEmpty {
-                    Section {
-                        ForEach(store.visiblePending) { row(for: $0) }
-                    } header: {
-                        sectionHeader("To Do", count: store.visiblePending.count, color: .secondary)
-                    }
-                }
-
-                if !store.visibleCompleted.isEmpty {
-                    Section {
-                        ForEach(store.visibleCompleted) { row(for: $0) }
-                    } header: {
-                        sectionHeader("Completed", count: store.visibleCompleted.count, color: .green)
-                    }
-                }
-            }
-            .listStyle(.inset)
-            .animation(.default, value: store.visibleTodos)
-        }
-    }
-
-    private func row(for todo: Todo) -> some View {
-        TodoRowView(
-            todo: todo,
-            onToggle: { store.toggle(todo) },
-            onEdit: { editorTarget = todo },
-            onDuplicate: { store.duplicate(todo) },
-            onDelete: { store.delete(todo) }
-        )
-    }
-
-    private func sectionHeader(_ title: String, count: Int, color: Color) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text("\(count)").monospacedDigit()
-        }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(color)
-        .textCase(nil)
-    }
-
     // MARK: Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .automatic) {
-            Picker("Filter", selection: $store.filter) {
-                ForEach(TodoFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 210)
-            .help("Filter tasks")
-        }
-
         ToolbarItem(placement: .automatic) {
             Menu {
                 Picker("Sort By", selection: $store.sort) {
@@ -313,50 +136,29 @@ struct ContentView: View {
                         Label(sort.title, systemImage: sort.symbolName).tag(sort)
                     }
                 }
+                .pickerStyle(.inline)
             } label: {
                 Label("Sort", systemImage: "arrow.up.arrow.down")
             }
             .help("Sort tasks")
         }
 
-        ToolbarItem(placement: .automatic) {
-            Menu {
-                Picker("Tag", selection: $store.tagFilter) {
-                    Text("All Tags").tag(String?.none)
-                    Divider()
-                    ForEach(store.allTags, id: \.self) { tag in
-                        Text(tag).tag(String?.some(tag))
-                    }
-                }
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                appState.requestDetailedNewTask()
             } label: {
-                Label(store.tagFilter ?? "Tags", systemImage: "tag")
+                Label("New Task", systemImage: "square.and.pencil")
             }
-            .disabled(store.allTags.isEmpty)
-            .help("Filter by tag")
+            .help("New task with details (⇧⌘N)")
         }
 
         ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button {
-                    appState.requestNewTask()
-                } label: {
-                    Label("New Task", systemImage: "plus")
-                }
-
-                Button {
-                    appState.requestDetailedNewTask()
-                } label: {
-                    Label("New Task with Details…", systemImage: "square.and.pencil")
-                }
-
-                Divider()
-
-                Button {
                     appState.requestImport()
                 } label: {
                     Label("Import Tasks…", systemImage: "square.and.arrow.down")
                 }
-
                 Button {
                     appState.requestExport()
                 } label: {
@@ -367,6 +169,15 @@ struct ContentView: View {
                 Divider()
 
                 Button {
+                    SyncEngine.shared.syncNow()
+                } label: {
+                    Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(!SyncEngine.shared.isConfigured)
+
+                Divider()
+
+                Button(role: .destructive) {
                     clearCompleted()
                 } label: {
                     Label("Clear Completed", systemImage: "checkmark.circle.trianglebadge.exclamationmark")
@@ -379,6 +190,312 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Sidebar
+
+struct SidebarView: View {
+    @ObservedObject private var store = TodoStore.shared
+    @ObservedObject private var sync = SyncEngine.shared
+
+    var body: some View {
+        List(selection: Binding(
+            get: { Optional(store.selection) },
+            set: { if let value = $0 { store.selection = value } }
+        )) {
+            Section {
+                ForEach(SmartList.fixed, id: \.self) { list in
+                    SidebarRow(list: list, count: store.count(for: list))
+                        .tag(list)
+                }
+            }
+
+            if !store.allTags.isEmpty {
+                Section("Tags") {
+                    ForEach(store.allTags, id: \.self) { tag in
+                        SidebarRow(list: .tag(tag), count: store.count(for: .tag(tag)))
+                            .tag(SmartList.tag(tag))
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                SyncStatusView()
+                Spacer()
+                if !sync.isConfigured {
+                    SettingsLink {
+                        Text("Set Up")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.borderless)
+                } else {
+                    Button {
+                        sync.syncNow()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Sync now")
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+    }
+}
+
+private struct SidebarRow: View {
+    let list: SmartList
+    let count: Int
+
+    var body: some View {
+        Label {
+            HStack {
+                Text(list.title)
+                    .lineLimit(1)
+                Spacer()
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } icon: {
+            if case .tag = list {
+                Circle()
+                    .fill(list.tint)
+                    .frame(width: 8, height: 8)
+            } else {
+                Image(systemName: list.symbolName)
+                    .foregroundStyle(list.tint)
+            }
+        }
+    }
+}
+
+// MARK: - Task list (detail)
+
+struct TaskListView: View {
+    @ObservedObject private var store = TodoStore.shared
+    @ObservedObject private var appState = AppState.shared
+
+    let onEdit: (Todo) -> Void
+    let onClearCompleted: () -> Void
+
+    @State private var newTitle = ""
+    @State private var showCompleted = true
+    @FocusState private var addFocused: Bool
+
+    private var list: SmartList { store.selection }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, 28)
+                .padding(.top, 18)
+                .padding(.bottom, 14)
+
+            QuickAddField(text: $newTitle, focus: $addFocused, onSubmit: addTask)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+
+            content
+        }
+        .background(.background)
+        .navigationTitle(list.title)
+        .navigationSubtitle(subtitle)
+        .onChange(of: appState.newTaskRequest) { _, _ in addFocused = true }
+    }
+
+    // MARK: Header
+
+    private var listTodos: [Todo] { store.todos.filter { list.contains($0) } }
+
+    private var header: some View {
+        let total = listTodos.count
+        let done = listTodos.filter(\.isCompleted).count
+        let progress = total == 0 ? 0 : Double(done) / Double(total)
+        let overdue = listTodos.filter(\.isOverdue).count
+
+        return HStack(alignment: .center, spacing: 14) {
+            Image(systemName: list.symbolName)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(list.tint.gradient, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(list.title)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                Text(headline)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if overdue > 0 {
+                Label("\(overdue) overdue", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.orange.opacity(0.12), in: Capsule())
+            }
+
+            if list.includesCompleted && total > 0 {
+                ProgressRing(progress: progress, lineWidth: 4, tint: list.tint)
+                    .frame(width: 42, height: 42)
+                    .help("\(done) of \(total) done")
+            }
+        }
+    }
+
+    private var headline: String {
+        let pending = listTodos.filter { !$0.isCompleted }.count
+        if listTodos.isEmpty { return emptyHeadline }
+        if pending == 0 { return "All done — nice work." }
+        let base = "\(pending) to do"
+        let today = listTodos.filter(\.isDueToday).count
+        return today > 0 && list != .today ? "\(base) · \(today) due today" : base
+    }
+
+    private var emptyHeadline: String {
+        switch list {
+        case .today: return "Nothing due today."
+        case .upcoming: return "No scheduled tasks."
+        case .completed: return "Nothing completed yet."
+        default: return "No tasks yet."
+        }
+    }
+
+    private var subtitle: String {
+        let pending = store.stats.pending
+        return pending == 0 ? "All caught up" : "\(pending) open"
+    }
+
+    private func addTask() {
+        guard store.addQuick(newTitle) != nil else { return }
+        newTitle = ""
+        addFocused = true
+    }
+
+    // MARK: Content
+
+    @ViewBuilder
+    private var content: some View {
+        let pending = store.visiblePending
+        let completed = store.visibleCompleted
+
+        if pending.isEmpty && completed.isEmpty {
+            if !store.searchText.isEmpty {
+                ContentUnavailableView.search(text: store.searchText)
+            } else {
+                emptyState
+            }
+        } else {
+            List {
+                if !pending.isEmpty {
+                    if list == .upcoming {
+                        ForEach(groupedByDay(pending), id: \.day) { group in
+                            Section {
+                                ForEach(group.todos) { row(for: $0) }
+                            } header: {
+                                sectionHeader(dayTitle(group.day), count: group.todos.count)
+                            }
+                        }
+                    } else {
+                        Section {
+                            ForEach(pending) { row(for: $0) }
+                        }
+                    }
+                }
+
+                if !completed.isEmpty {
+                    Section(isExpanded: $showCompleted) {
+                        ForEach(completed) { row(for: $0) }
+                    } header: {
+                        HStack {
+                            Text("Completed")
+                            Text("\(completed.count)").monospacedDigit().foregroundStyle(.tertiary)
+                            Spacer()
+                            Button("Clear", action: onClearCompleted)
+                                .buttonStyle(.borderless)
+                                .font(.caption)
+                        }
+                        .font(.caption.weight(.semibold))
+                        .textCase(nil)
+                    }
+                }
+            }
+            .listStyle(.inset)
+            .scrollContentBackground(.hidden)
+            .animation(.snappy(duration: 0.25), value: store.visibleTodos)
+        }
+    }
+
+    private var emptyState: some View {
+        switch list {
+        case .today:
+            return EmptyStateView(title: "Free day", systemImage: "sun.max", message: "Nothing is due today. Add a task with @today to plan it in.", tint: .orange)
+        case .upcoming:
+            return EmptyStateView(title: "Nothing scheduled", systemImage: "calendar", message: "Tasks with a due date show up here, grouped by day.", tint: .red)
+        case .completed:
+            return EmptyStateView(title: "Nothing completed", systemImage: "checkmark.circle", message: "Completed tasks will show up here.", tint: .green)
+        case .tag(let tag):
+            return EmptyStateView(title: "No tasks in #\(tag)", systemImage: "number", message: "Add one above — it gets this tag automatically.", tint: .forTag(tag))
+        case .all:
+            return EmptyStateView(title: "No tasks yet", systemImage: "checklist", message: "Type above and press Return. Use #tags, !high and @tomorrow as shortcuts.", tint: .blue)
+        }
+    }
+
+    private func row(for todo: Todo) -> some View {
+        TodoRowView(
+            todo: todo,
+            onToggle: { store.toggle(todo) },
+            onEdit: { onEdit(todo) },
+            onDuplicate: { store.duplicate(todo) },
+            onDelete: { store.delete(todo) },
+            onSetPriority: { priority in
+                var copy = todo
+                copy.priority = priority
+                store.update(copy)
+            }
+        )
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
+    }
+
+    private func sectionHeader(_ title: String, count: Int) -> some View {
+        HStack {
+            Text(title)
+            Text("\(count)").monospacedDigit().foregroundStyle(.tertiary)
+            Spacer()
+        }
+        .font(.caption.weight(.semibold))
+        .textCase(nil)
+    }
+
+    private struct DayGroup { let day: Date; let todos: [Todo] }
+
+    private func groupedByDay(_ todos: [Todo]) -> [DayGroup] {
+        let calendar = Calendar.current
+        let groups = Dictionary(grouping: todos) { calendar.startOfDay(for: $0.dueDate ?? .distantFuture) }
+        return groups.keys.sorted().map { day in
+            DayGroup(day: day, todos: groups[day]!.sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) })
+        }
+    }
+
+    private func dayTitle(_ day: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(day) { return "Today" }
+        if calendar.isDateInTomorrow(day) { return "Tomorrow" }
+        return day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
+    }
+}
+
 // MARK: - Row
 
 struct TodoRowView: View {
@@ -387,96 +504,127 @@ struct TodoRowView: View {
     let onEdit: () -> Void
     let onDuplicate: () -> Void
     let onDelete: () -> Void
+    var onSetPriority: ((TodoPriority) -> Void)?
 
     @State private var isHovering = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Button(action: onToggle) {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 19))
-                    .foregroundStyle(checkboxColor)
-            }
-            .buttonStyle(.plain)
-            .help(todo.isCompleted ? "Mark as not done" : "Mark as done")
+            CheckButton(isOn: todo.isCompleted, tint: checkTint, action: onToggle)
+                .padding(.top, 1)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(todo.displayTitle)
-                    .font(.body)
-                    .strikethrough(todo.isCompleted)
-                    .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    if todo.priority == .high && !todo.isCompleted {
+                        Image(systemName: "flag.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    Text(todo.displayTitle)
+                        .font(.body)
+                        .strikethrough(todo.isCompleted, color: .secondary)
+                        .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+                }
 
                 if !todo.notes.isEmpty {
                     Text(todo.notes)
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
 
-                if !todo.isCompleted, todo.dueDate != nil || todo.priority != .medium {
-                    HStack(spacing: 6) {
-                        if let dueDate = todo.dueDate {
-                            DueDateBadge(date: dueDate, isOverdue: todo.isOverdue)
+                if hasMeta {
+                    FlowLayout(spacing: 5, lineSpacing: 4) {
+                        if let due = todo.dueDate, !todo.isCompleted {
+                            DueDateBadge(date: due, isOverdue: todo.isOverdue)
                         }
-                        if todo.priority != .medium {
-                            PriorityBadge(priority: todo.priority)
+                        if todo.priority == .low && !todo.isCompleted {
+                            PriorityBadge(priority: .low)
                         }
+                        ForEach(todo.tags, id: \.self) { TagChip(tag: $0) }
                     }
-                }
-
-                if !todo.tags.isEmpty {
-                    FlowLayout(spacing: 4, lineSpacing: 4) {
-                        ForEach(todo.tags, id: \.self) { tag in
-                            TagChip(tag: tag)
-                        }
-                    }
-                    .opacity(todo.isCompleted ? 0.5 : 1)
+                    .opacity(todo.isCompleted ? 0.55 : 1)
                 }
             }
 
             Spacer(minLength: 8)
 
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundStyle(.secondary)
+            if isHovering {
+                HStack(spacing: 2) {
+                    rowButton("pencil", help: "Edit", action: onEdit)
+                    rowButton("trash", help: "Delete", action: onDelete)
+                }
+                .transition(.opacity)
             }
-            .buttonStyle(.plain)
-            .opacity(isHovering ? 1 : 0.25)
-            .help("Delete")
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHovering ? Color.primary.opacity(0.045) : .clear)
+        )
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: onEdit)
-        .onHover { isHovering = $0 }
-        .contextMenu {
-            Button {
-                onToggle()
-            } label: {
-                Label(
-                    todo.isCompleted ? "Mark Incomplete" : "Mark Complete",
-                    systemImage: todo.isCompleted ? "circle" : "checkmark.circle"
-                )
-            }
-            Button { onEdit() } label: {
-                Label("Edit…", systemImage: "pencil")
-            }
-            Button { onDuplicate() } label: {
-                Label("Duplicate", systemImage: "plus.square.on.square")
-            }
-            Divider()
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) { isHovering = hovering }
         }
+        .contextMenu { contextMenu }
     }
 
-    private var checkboxColor: Color {
-        if todo.isCompleted { return .green }
-        return todo.isOverdue ? .orange : .accentColor
+    private var hasMeta: Bool {
+        (!todo.isCompleted && (todo.dueDate != nil || todo.priority == .low)) || !todo.tags.isEmpty
+    }
+
+    private var checkTint: Color {
+        if todo.isOverdue { return .orange }
+        return todo.priority == .high ? .red : .secondary
+    }
+
+    private func rowButton(_ symbol: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(width: 26, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
+    @ViewBuilder
+    private var contextMenu: some View {
+        Button {
+            onToggle()
+        } label: {
+            Label(todo.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                  systemImage: todo.isCompleted ? "circle" : "checkmark.circle")
+        }
+        Button { onEdit() } label: { Label("Edit…", systemImage: "pencil") }
+        if let onSetPriority {
+            Menu {
+                ForEach(TodoPriority.allCases.reversed()) { priority in
+                    Button {
+                        onSetPriority(priority)
+                    } label: {
+                        if priority == todo.priority {
+                            Label(priority.title, systemImage: "checkmark")
+                        } else {
+                            Text(priority.title)
+                        }
+                    }
+                }
+            } label: {
+                Label("Priority", systemImage: "flag")
+            }
+        }
+        Button { onDuplicate() } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+        Divider()
+        Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
     }
 }
 
-// MARK: - Small components
+// MARK: - Window bridge
 
 /// Captures SwiftUI's `openWindow` action so the AppKit menu bar item can
 /// reopen the main window after the user has closed it.
@@ -489,84 +637,6 @@ private struct MainWindowBridge: View {
             .onAppear {
                 AppState.shared.openMainWindow = { openWindow(id: MainWindow.id) }
             }
-    }
-}
-
-struct ProgressRing: View {
-    let progress: Double
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.secondary.opacity(0.18), lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: max(0.0001, min(1, progress)))
-                .stroke(
-                    Color.accentColor,
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.25), value: progress)
-            Text("\(Int((progress * 100).rounded()))%")
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
-    }
-}
-
-struct DueDateBadge: View {
-    let date: Date
-    let isOverdue: Bool
-
-    var body: some View {
-        Label(text, systemImage: "calendar")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(isOverdue ? .orange : Color.secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background((isOverdue ? Color.orange : Color.secondary).opacity(0.12), in: Capsule())
-    }
-
-    private var text: String {
-        if isOverdue { return "Overdue" }
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Today" }
-        if calendar.isDateInTomorrow(date) { return "Tomorrow" }
-        if calendar.isDateInYesterday(date) { return "Yesterday" }
-        return date.formatted(.dateTime.month(.abbreviated).day())
-    }
-}
-
-struct PriorityBadge: View {
-    let priority: TodoPriority
-
-    var body: some View {
-        Label(priority.title, systemImage: priority.symbolName)
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.12), in: Capsule())
-    }
-
-    private var color: Color {
-        priority == .high ? .red : .blue
-    }
-}
-
-struct EmptyStateView: View {
-    let title: String
-    let systemImage: String
-    let message: String
-
-    var body: some View {
-        ContentUnavailableView {
-            Label(title, systemImage: systemImage)
-        } description: {
-            Text(message)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
