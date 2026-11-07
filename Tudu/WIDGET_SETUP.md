@@ -27,7 +27,7 @@ This allows the widget and main app to share data.
 3. Go to **Signing & Capabilities** tab
 4. Click **+ Capability**
 5. Add **App Groups**
-6. Click **+** and create: `group.com.example.todowidget`
+6. Click **+** and create: `group.com.Tudu`
    - Or use your own bundle ID pattern like `group.com.yourcompany.tudu`
 7. Make sure it's checked
 

@@ -1,19 +1,36 @@
-# Tudu - Beautiful Todo App with Widget for macOS
+# Tudu — A Todo App with Widgets for macOS
 
-A native macOS todo application with widget support, featuring a clean interface, menu bar integration, and data persistence.
+A native macOS todo app built with SwiftUI, with a Home Screen / Notification
+Center widget, a menu bar popover, and data shared between the app and the
+widget through an App Group.
 
 ## Features
 
-- ✅ **Native macOS App** - Built with SwiftUI
-- 📱 **Widget Support** - Small, Medium, and Large widgets for Notification Center
-- 🎯 **Menu Bar Integration** - Quick access from the menu bar
-- 💾 **Data Persistence** - Your todos are saved using App Groups
-- 🎨 **Beautiful UI** - Modern, clean interface with statistics
-- 🔄 **Real-time Sync** - Widget updates automatically when you add/edit todos
+- **Native SwiftUI app** — sidebar-free, focused task list with a progress ring
+  and at-a-glance stats.
+- **Widgets** — small, medium, and large widgets that show your pending and
+  completed tasks. Tap a checkbox right in the widget to complete a task
+  (interactive App Intent).
+- **Menu bar access** — a compact popover for quick capture without leaving
+  whatever you are doing.
+- **Rich tasks** — notes, priority (low / medium / high), due dates, and tags,
+  with overdue and due-today highlighting.
+- **Tags** — label tasks and filter the list by tag; tags are searchable too.
+- **Search, filter, and sort** — search by title, notes, or tag; filter by
+  All / Active / Completed; sort by newest, due date, priority, or A–Z.
+- **Due-date notifications** — optional local notifications when a task with a
+  due date becomes due.
+- **Import / export** — back up your tasks to JSON and merge them back in.
+- **Editing** — double-click a row (or use the context menu) to edit notes,
+  priority, due date, and tags in a dedicated editor sheet.
+- **Keyboard friendly** — `⌘N` for a new task, `⌘⇧N` for a new task with
+  details, `⌘F` to search, plus standard menu commands.
+- **Data persistence** — tasks are stored as JSON in an App Group so the app and
+  widget stay in sync, with one-time migration from older storage locations.
 
 ## Screenshots
 
-[Add screenshots of your app and widgets here]
+[Add screenshots of the app and widgets here]
 
 ## Installation
 
@@ -34,18 +51,18 @@ brew install --cask tudu
 ## Widget Setup
 
 1. Run the Tudu app and add some todos
-2. Open **Notification Center** (click time in menu bar)
-3. Scroll to bottom and click **Edit Widgets**
+2. Open **Notification Center** (click the time in the menu bar)
+3. Scroll to the bottom and click **Edit Widgets**
 4. Search for "Tudu"
-5. Drag the widget to your desired location
-6. Choose your preferred size (Small, Medium, or Large)
+5. Drag the widget to the position you want
+6. Choose a size (Small, Medium, or Large)
 
 ## Building from Source
 
 ### Prerequisites
 
-- macOS 14.0 or later
-- Xcode 15.0 or later
+- macOS 26.1 or later
+- Xcode 27.0 or later
 - Command Line Tools
 
 ### Build Steps
@@ -58,7 +75,7 @@ cd tudu
 # Open in Xcode
 open Tudu.xcodeproj
 
-# Or build from command line
+# Or build from the command line
 ./build_release.sh 1.0.0
 ```
 
@@ -66,50 +83,73 @@ open Tudu.xcodeproj
 
 ```
 Tudu/
-├── Tudu/
-│   ├── TuduApp.swift          # Main app entry point
-│   ├── SharedModels.swift     # Shared data models
-│   └── Assets.xcassets/       # App icons and assets
-├── TuduWidget/
-│   ├── TuduWidget.swift       # Widget implementation
-│   └── TuduWidgetBundle.swift # Widget bundle
-├── ICON_INTEGRATION.md        # Guide for adding custom icons
-├── HOMEBREW_PUBLISHING.md     # Guide for publishing to Homebrew
-├── SETUP_WIDGET.md           # Widget setup instructions
-└── build_release.sh          # Release build script
+├── Tudu/                          # Main app target
+│   ├── TuduApp.swift              # App entry point and scenes
+│   ├── AppDelegate.swift          # Menu bar status item + preferences
+│   ├── AppState.swift             # Deep-link handling, window management
+│   ├── AppPreferences.swift       # User preferences (UserDefaults)
+│   ├── ContentView.swift          # Main window UI
+│   ├── TodoEditorView.swift       # Add / edit task sheet
+│   ├── TagViews.swift             # Tag chips, flow layout, tag editor
+│   ├── ImportExport.swift         # JSON import / export document
+│   ├── NotificationManager.swift  # Due-date local notifications
+│   ├── SettingsView.swift         # Preferences window
+│   ├── MenuBarView.swift          # Menu bar popover
+│   ├── TodoStore.swift            # App state and CRUD
+│   ├── SharedModels.swift         # Shared model, storage, migration
+│   ├── Info.plist                 # App Info.plist (URL scheme)
+│   └── Assets.xcassets/           # App icon and accent color
+├── TuduWidget/                    # Widget extension target
+│   ├── TuduWidget.swift           # Widget views and timeline
+│   ├── AppIntent.swift            # Toggle-completion App Intent
+│   └── TuduWidgetBundle.swift     # Widget bundle
+├── Config/
+│   ├── Tudu.entitlements          # App Group + sandbox (app)
+│   └── TuduWidget.entitlements    # App Group + sandbox (widget)
+├── ICON_INTEGRATION.md            # Guide for adding a custom app icon
+├── HOMEBREW_PUBLISHING.md         # Guide for publishing to Homebrew
+├── SETUP_WIDGET.md                # Widget setup instructions
+└── build_release.sh               # Release build script
 ```
-
-## Documentation
-
-- **[Icon Integration Guide](ICON_INTEGRATION.md)** - How to add your custom app icon
-- **[Widget Setup Guide](SETUP_WIDGET.md)** - Setting up the widget extension
-- **[Homebrew Publishing Guide](HOMEBREW_PUBLISHING.md)** - Publishing your app to Homebrew
 
 ## Development
 
 ### Widget Sizes
 
-- **Small Widget**: Shows pending task count and next task
-- **Medium Widget**: Displays up to 4 tasks with completion status
-- **Large Widget**: Shows up to 9 tasks, separated by pending/completed
+- **Small widget** — pending task count and the next task
+- **Medium widget** — up to 4 tasks with completion status
+- **Large widget** — up to 9 tasks, grouped by pending/completed
+
+Checkboxes in the medium and large widgets are interactive: tapping one
+completes (or reopens) that task through an App Intent, and the app picks up the
+change the next time it becomes active.
 
 ### App Groups
 
-The app uses App Groups to share data between the main app and widget:
+The app and widget share data through an App Group:
+
 ```
-group.com.example.todowidget
+group.com.Tudu
 ```
 
-Make sure to configure this in both targets (Tudu and TuduWidgetExtension).
+The identifier is defined once in `Tudu/SharedModels.swift`
+(`SharedTodoData.suiteName`) and must match the `application-groups`
+entitlement in both `Config/Tudu.entitlements` and
+`Config/TuduWidget.entitlements`. If you change the App Group, update all three
+places.
+
+On first launch the app migrates tasks from the previous App Group
+(`group.com.example.todowidget`) and from standard `UserDefaults`, so upgrading
+does not lose your list.
 
 ## Requirements
 
-- macOS 14.0+
-- 10 MB disk space
+- macOS 26.1+
+- ~10 MB disk space
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -136,11 +176,9 @@ If you encounter any issues or have questions:
 ## Roadmap
 
 - [ ] iCloud sync
-- [ ] Categories and tags
-- [ ] Reminders and notifications
-- [ ] Dark mode support
-- [ ] Keyboard shortcuts
-- [ ] Export/Import todos
+- [ ] Recurring tasks
+- [ ] Notifications with custom lead times
+- [ ] Per-task reminders
 
 ---
 
