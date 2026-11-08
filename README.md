@@ -1,32 +1,52 @@
-# Tudu — A Todo App with Widgets for macOS
+# Tudu — A Todo App for Mac and Android
 
-A native macOS todo app built with SwiftUI, with a Home Screen / Notification
-Center widget, a menu bar popover, and data shared between the app and the
-widget through an App Group.
+A native macOS todo app built with SwiftUI, with desktop and Notification Center
+widgets and a menu bar popover, plus a native Android app. Your tasks sync
+between devices through a small Cloudflare Worker.
 
 ## Features
 
-- **Native SwiftUI app** — sidebar-free, focused task list with a progress ring
-  and at-a-glance stats.
-- **Widgets** — small, medium, and large widgets that show your pending and
-  completed tasks. Tap a checkbox right in the widget to complete a task
-  (interactive App Intent).
-- **Menu bar access** — a compact popover for quick capture without leaving
-  whatever you are doing.
+### macOS
+
+- **Sidebar lists** — Today, Upcoming (grouped by day), All Tasks, Completed, and
+  one list for each tag, with counts and sync status.
+- **Quick add shortcuts** — type `Pay rent #home !high @fri` and Tudu sets the
+  tag, priority, and deadline. Chips show what was recognized before you press
+  Return. See [Quick add shortcuts](#quick-add-shortcuts).
+- **Widgets** — small, medium, large, and extra-large. Edit a widget to choose
+  All Tasks, Today, or High Priority, and whether completed tasks appear. Tick a
+  task right in the widget. Widgets sync even when the app is closed.
+- **Menu bar** — a popover with Today and All tabs, quick add, overdue tasks
+  first, and recently completed tasks. It can show the pending count next to
+  the icon.
 - **Rich tasks** — notes, priority (low / medium / high), due dates, and tags,
   with overdue and due-today highlighting.
-- **Tags** — label tasks and filter the list by tag; tags are searchable too.
-- **Search, filter, and sort** — search by title, notes, or tag; filter by
-  All / Active / Completed; sort by newest, due date, priority, or A–Z.
-- **Due-date notifications** — optional local notifications when a task with a
-  due date becomes due.
+- **Search and sort** — search by title, notes, or tag; sort by newest, due date,
+  priority, or A–Z.
+- **Due-date notifications** — optional local notifications when a task becomes
+  due.
 - **Import / export** — back up your tasks to JSON and merge them back in.
 - **Editing** — double-click a row (or use the context menu) to edit notes,
-  priority, due date, and tags in a dedicated editor sheet.
+  priority, due date, and tags.
 - **Keyboard friendly** — `⌘N` for a new task, `⌘⇧N` for a new task with
   details, `⌘F` to search, plus standard menu commands.
-- **Data persistence** — tasks are stored as JSON in an App Group so the app and
-  widget stay in sync, with one-time migration from older storage locations.
+- **Local storage** — tasks are stored as JSON in an App Group shared by the app
+  and the widget, with one-time migration from older storage locations.
+
+### Android
+
+- **Task list** — All / Active / Completed filters, tag filters, search, sort, and
+  pull to refresh.
+- **Quick add with visual cues** — shortcuts are highlighted as you type, preview
+  chips show the result, and suggestion chips add a date, priority, or tag with
+  one tap.
+- **Gestures** — swipe to complete or delete, with undo.
+- **Priority cues** — a colored edge on high and low priority tasks, and orange
+  labels for tasks that are overdue or due today.
+- **Home-screen widget** — pending tasks, tick to complete, and a **+** button that
+  opens quick add.
+
+See [`android/README.md`](android/README.md) for details.
 
 ## Sync (Mac ⇄ Android)
 
@@ -34,11 +54,14 @@ Tudu syncs through a small Cloudflare Worker (`worker/`), with one SQLite
 Durable Object for each sync space. You do not need an account. A secret **sync
 key** links your devices.
 
-1. On the Mac, open **Settings → Sync** and click **Create a new sync key**.
-2. In Tudu for Android (`android/`), open **Settings → Sync**. Scan the QR code
-   shown on the Mac, or paste the key.
-3. Changes sync after each edit, every minute while the app runs, and when the
-   widget refreshes. Widget check-offs sync even when the app is closed.
+1. On the Mac, open **Settings → Sync** and click **Create a new sync key**, then
+   **Show QR**.
+2. In Tudu for Android, open **⋮ → Settings & sync**. Scan the QR code shown on
+   the Mac, or paste the key.
+3. The Mac syncs after each edit, every minute while the app runs, and when a
+   widget refreshes. Widget check-offs sync even when the app is closed. Android
+   syncs after each edit, when the app opens, and about every 15 minutes in the
+   background.
 
 Conflicts resolve per task: the most recent edit wins. Deleted tasks are kept
 as tombstones, so the delete reaches every device. The API is documented in
@@ -59,9 +82,27 @@ Then set the server URL in the Settings of each app.
 
 ### Quick add shortcuts
 
-Type these in a quick-add field on the Mac (main window or menu bar):
-`#tag`, `!high` / `!low`, `@today`, `@tomorrow`, `@fri`, `@next week`.
-For example: `Pay rent #home !high @fri`.
+Type these anywhere in a quick-add field (main window, menu bar, or Android).
+They are not case-sensitive.
+
+| Want | Type |
+| --- | --- |
+| High priority | `!high`, `!h`, `!!`, `!3`, `!urgent` |
+| Low priority | `!low`, `!l`, `!1` |
+| Medium priority (default) | `!med`, `!medium`, `!2` |
+| Due today | `@today`, `@tod` |
+| Due tomorrow | `@tomorrow`, `@tom`, `@tmr` |
+| Due on a weekday | `@mon` … `@sun`, or the full day name |
+| Due in 7 days | `@next week` |
+| Tag | `#home` |
+
+- Deadlines are set to 5 PM. If 5 PM has already passed today, `@today` means
+  11:59 PM.
+- A weekday means its next occurrence, so `@fri` typed on a Friday is next Friday.
+- Exact dates and times such as `@dec12` or `@3pm` are not supported. They stay in
+  the title. Use the task editor instead.
+- With a tag list or tag filter selected, new tasks get that tag. On the Mac, new
+  tasks in Today are due today unless you type another date.
 
 ## Screenshots
 
@@ -69,7 +110,10 @@ For example: `Pay rent #home !high @fri`.
 
 ## Installation
 
-### Using Homebrew (Recommended)
+> Sync, the redesigned UI, and the Android app are newer than every published
+> release. To get them now, [build from source](#building-from-source).
+
+### Using Homebrew
 
 ```bash
 brew tap AslamSDM/tudu
@@ -83,14 +127,21 @@ brew install --cask tudu
 3. Move `Tudu.app` to your Applications folder
 4. Open Tudu from Applications
 
+### Android
+
+No APK is published yet. Build it and install it with `adb`, as described in
+[`android/README.md`](android/README.md).
+
 ## Widget Setup
 
 1. Run the Tudu app and add some todos
-2. Open **Notification Center** (click the time in the menu bar)
-3. Scroll to the bottom and click **Edit Widgets**
-4. Search for "Tudu"
-5. Drag the widget to the position you want
-6. Choose a size (Small, Medium, or Large)
+2. Right-click the desktop and choose **Edit Widgets**, or open **Notification
+   Center** and click **Edit Widgets**
+3. Search for "Tudu"
+4. Drag the widget to the position you want and choose a size
+5. To choose which tasks it shows, right-click the widget and choose **Edit "Tudu"**
+
+If you used a widget from an older build, remove it and add it again.
 
 ## Building from Source
 
@@ -114,6 +165,15 @@ open Tudu.xcodeproj
 ./build_release.sh 1.0.0
 ```
 
+The app and widget use an App Group, so a signed build needs an Apple account in
+**Xcode → Settings → Accounts**. Without one, widgets may not appear or may not
+see your tasks.
+
+The other two parts build on their own:
+
+- Android: [`android/README.md`](android/README.md) (JDK 17+ and Android SDK 36)
+- Worker: [Deploying your own Worker](#deploying-your-own-worker) (Node.js)
+
 ## Project Structure
 
 ```
@@ -123,15 +183,18 @@ Tudu/
 │   ├── AppDelegate.swift          # Menu bar status item + preferences
 │   ├── AppState.swift             # Deep-link handling, window management
 │   ├── AppPreferences.swift       # User preferences (UserDefaults)
-│   ├── ContentView.swift          # Main window UI
+│   ├── ContentView.swift          # Main window: sidebar, list, rows
+│   ├── Components.swift           # Quick add field, badges, sync status
 │   ├── TodoEditorView.swift       # Add / edit task sheet
 │   ├── TagViews.swift             # Tag chips, flow layout, tag editor
 │   ├── ImportExport.swift         # JSON import / export document
 │   ├── NotificationManager.swift  # Due-date local notifications
-│   ├── SettingsView.swift         # Preferences window
+│   ├── SettingsView.swift         # Preferences and sync pairing
 │   ├── MenuBarView.swift          # Menu bar popover
 │   ├── TodoStore.swift            # App state and CRUD
-│   ├── SharedModels.swift         # Shared model, storage, migration
+│   ├── SyncEngine.swift           # When to sync, status for the UI
+│   ├── SyncClient.swift           # Sync protocol (shared with the widget)
+│   ├── SharedModels.swift         # Model, storage, quick add parser (shared)
 │   ├── Info.plist                 # App Info.plist (URL scheme)
 │   └── Assets.xcassets/           # App icon and accent color
 ├── TuduWidget/                    # Widget extension target
@@ -141,6 +204,11 @@ Tudu/
 ├── Config/
 │   ├── Tudu.entitlements          # App Group + sandbox (app)
 │   └── TuduWidget.entitlements    # App Group + sandbox (widget)
+├── worker/                        # Cloudflare Worker sync backend
+├── android/                       # Android app and widget
+├── docs/
+│   ├── SYNC_API.md                # Sync protocol
+│   └── index.html                 # Landing page
 ├── ICON_INTEGRATION.md            # Guide for adding a custom app icon
 ├── HOMEBREW_PUBLISHING.md         # Guide for publishing to Homebrew
 ├── SETUP_WIDGET.md                # Widget setup instructions
@@ -151,13 +219,20 @@ Tudu/
 
 ### Widget Sizes
 
-- **Small widget** — pending task count and the next task
-- **Medium widget** — up to 4 tasks with completion status
-- **Large widget** — up to 9 tasks, grouped by pending/completed
+- **Small** — pending count, progress ring, and the next task
+- **Medium** — pending count and up to 4 tasks
+- **Large** — task stats and up to 8 tasks
+- **Extra large** — task stats and up to 18 tasks in two columns
 
-Checkboxes in the medium and large widgets are interactive: tapping one
-completes (or reopens) that task through an App Intent, and the app picks up the
-change the next time it becomes active.
+Checkboxes are interactive in every size: tapping one completes (or reopens) that
+task through an App Intent. A running app picks up the change immediately through
+a Darwin notification.
+
+### Shared code
+
+`Tudu/SharedModels.swift` and `Tudu/SyncClient.swift` belong to both the app and
+widget targets. The quick add rules exist twice, in `SharedModels.swift` and
+`android/.../domain/QuickAddParser.kt`, so change them together.
 
 ### App Groups
 
@@ -181,6 +256,7 @@ does not lose your list.
 
 - macOS 26.1+
 - ~10 MB disk space
+- Android 8.0+ (API 26) for the Android app
 
 ## Contributing
 
@@ -210,11 +286,11 @@ If you encounter any issues or have questions:
 
 ## Roadmap
 
-- [ ] iCloud sync
+- [x] Sync between devices (Cloudflare Worker)
 - [ ] Recurring tasks
 - [ ] Notifications with custom lead times
 - [ ] Per-task reminders
 
 ---
 
-**Made with ❤️ for macOS**
+**Made with ❤️ for Mac and Android**
