@@ -302,7 +302,7 @@ public struct QuickAddParser {
             } else if let priority = priority(from: lower) {
                 result.priority = priority
             } else if lower == "@next", i + 1 < tokens.count, tokens[i + 1].lowercased() == "week" {
-                result.dueDate = endOfDay(calendar.date(byAdding: .day, value: 7, to: now) ?? now, calendar)
+                result.dueDate = dueOn(calendar.date(byAdding: .day, value: 7, to: now) ?? now, now: now, calendar)
                 i += 1
             } else if lower.hasPrefix("@"), let date = date(from: String(lower.dropFirst()), now: now, calendar: calendar) {
                 result.dueDate = date
@@ -326,23 +326,37 @@ public struct QuickAddParser {
         }
     }
 
-    private static func endOfDay(_ date: Date, _ calendar: Calendar) -> Date {
-        calendar.date(bySettingHour: 17, minute: 0, second: 0, of: date) ?? date
+    /// 5 PM on `date`, or 11:59 PM when 5 PM has already passed, so a new
+    /// task is never born overdue.
+    private static func dueOn(_ date: Date, now: Date, _ calendar: Calendar) -> Date {
+        let fivePM = calendar.date(bySettingHour: 17, minute: 0, second: 0, of: date) ?? date
+        if fivePM > now { return fivePM }
+        return calendar.date(bySettingHour: 23, minute: 59, second: 0, of: date) ?? date
     }
+
+    /// Calendar weekday (1 = Sunday) for each accepted spelling. Exact matches
+    /// only, so a word like `@monica` stays in the title.
+    private static let weekdays: [String: Int] = [
+        "sun": 1, "sunday": 1,
+        "mon": 2, "monday": 2,
+        "tue": 3, "tues": 3, "tuesday": 3,
+        "wed": 4, "weds": 4, "wednesday": 4,
+        "thu": 5, "thur": 5, "thurs": 5, "thursday": 5,
+        "fri": 6, "friday": 6,
+        "sat": 7, "saturday": 7,
+    ]
 
     private static func date(from word: String, now: Date, calendar: Calendar) -> Date? {
         switch word {
-        case "today", "tod": return endOfDay(now, calendar)
-        case "tomorrow", "tom", "tmr": return endOfDay(calendar.date(byAdding: .day, value: 1, to: now) ?? now, calendar)
+        case "today", "tod": return dueOn(now, now: now, calendar)
+        case "tomorrow", "tom", "tmr": return dueOn(calendar.date(byAdding: .day, value: 1, to: now) ?? now, now: now, calendar)
         default: break
         }
-        let weekdays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-        guard let index = weekdays.firstIndex(where: { word.hasPrefix($0) }) else { return nil }
-        let target = index + 1
+        guard let target = weekdays[word] else { return nil }
         let today = calendar.component(.weekday, from: now)
         var delta = (target - today + 7) % 7
         if delta == 0 { delta = 7 }
-        return endOfDay(calendar.date(byAdding: .day, value: delta, to: now) ?? now, calendar)
+        return dueOn(calendar.date(byAdding: .day, value: delta, to: now) ?? now, now: now, calendar)
     }
 }
 

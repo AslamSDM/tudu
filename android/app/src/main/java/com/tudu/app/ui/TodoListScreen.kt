@@ -3,6 +3,7 @@ package com.tudu.app.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -193,6 +194,8 @@ fun TodoListScreen(
         bottomBar = {
             QuickAddBar(
                 focusRequester = quickAddFocus,
+                knownTags = state.allTags,
+                contextTag = state.tag,
                 onAdd = viewModel::add,
             )
         },
@@ -554,9 +557,17 @@ private fun TodoRow(todo: TodoEntity, onToggle: () -> Unit, onOpen: () -> Unit) 
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
     ) {
+        val accent = when {
+            todo.isCompleted -> Color.Transparent
+            todo.priorityLevel == Priority.HIGH -> colors.high
+            todo.priorityLevel == Priority.LOW -> MaterialTheme.colorScheme.primary
+            else -> Color.Transparent
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 4.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            modifier = Modifier
+                .drawBehind { drawRect(accent, size = androidx.compose.ui.geometry.Size(4.dp.toPx(), size.height)) }
+                .padding(start = 4.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         ) {
             IconButton(onClick = onToggle) {
                 Icon(
@@ -564,6 +575,7 @@ private fun TodoRow(todo: TodoEntity, onToggle: () -> Unit, onOpen: () -> Unit) 
                     contentDescription = if (todo.isCompleted) "Mark as not done" else "Mark as done",
                     tint = when {
                         todo.isCompleted -> colors.success
+                        overdue -> colors.overdue
                         todo.priorityLevel == Priority.HIGH -> colors.high
                         else -> MaterialTheme.colorScheme.outline
                     },
@@ -593,7 +605,11 @@ private fun TodoRow(todo: TodoEntity, onToggle: () -> Unit, onOpen: () -> Unit) 
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (due != null) {
-                            Badge(Icons.Default.CalendarToday, due, if (overdue) colors.overdue else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Badge(
+                                Icons.Default.CalendarToday,
+                                due,
+                                if (overdue || TodoLogic.isDueToday(todo)) colors.overdue else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         if (showPriority) {
                             Badge(
@@ -611,7 +627,7 @@ private fun TodoRow(todo: TodoEntity, onToggle: () -> Unit, onOpen: () -> Unit) 
 }
 
 @Composable
-private fun Badge(icon: ImageVector?, text: String, color: Color) {
+internal fun Badge(icon: ImageVector?, text: String, color: Color) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -624,47 +640,5 @@ private fun Badge(icon: ImageVector?, text: String, color: Color) {
             Spacer(Modifier.width(4.dp))
         }
         Text(text, color = color, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, maxLines = 1)
-    }
-}
-
-@Composable
-private fun QuickAddBar(focusRequester: FocusRequester, onAdd: (String) -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
-    val keyboard = LocalSoftwareKeyboardController.current
-    val submit = {
-        if (text.isNotBlank()) {
-            onAdd(text)
-            text = ""
-        }
-    }
-    Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .imePadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-        ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                placeholder = { Text("Add a task…") },
-                singleLine = true,
-                shape = RoundedCornerShape(28.dp),
-                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (text.isBlank()) keyboard?.hide()
-                    submit()
-                }),
-                modifier = Modifier.weight(1f).focusRequester(focusRequester),
-            )
-            Spacer(Modifier.width(8.dp))
-            androidx.compose.material3.FilledIconButton(
-                onClick = submit,
-                enabled = text.isNotBlank(),
-                modifier = Modifier.size(52.dp),
-            ) { Icon(Icons.AutoMirrored.Filled.Send, "Add task") }
-        }
     }
 }

@@ -14,7 +14,7 @@ extension TodoStore {
         case .tag(let tag):
             parsed.tags = Todo.normalize(tags: [tag] + parsed.tags)
         case .today where parsed.dueDate == nil:
-            parsed.dueDate = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())
+            parsed.dueDate = QuickAddParser.parse("@today").dueDate
         default:
             break
         }

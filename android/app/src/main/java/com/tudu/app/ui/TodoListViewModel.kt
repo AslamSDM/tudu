@@ -6,6 +6,7 @@ import com.tudu.app.AppContainer
 import com.tudu.app.data.SyncSettings
 import com.tudu.app.data.TodoEntity
 import com.tudu.app.domain.TodoFilter
+import com.tudu.app.domain.QuickAddParser
 import com.tudu.app.domain.TodoLogic
 import com.tudu.app.domain.TodoSort
 import com.tudu.app.sync.SyncResult
@@ -100,8 +101,14 @@ class TodoListViewModel(private val container: AppContainer) : ViewModel() {
     fun setTag(value: String?) { tag.value = value }
     fun setSort(value: TodoSort) { viewModelScope.launch { container.settings.setSort(value) } }
 
-    fun add(title: String) {
-        viewModelScope.launch { repository.add(title) }
+    /** Adds a task from quick-add text. A selected tag filter applies to the new task. */
+    fun add(text: String) {
+        val parsed = QuickAddParser.parse(text)
+        if (!parsed.canSubmit) return
+        val tags = listOfNotNull(tag.value) + parsed.tags
+        viewModelScope.launch {
+            repository.add(parsed.title, priority = parsed.priority, dueDate = parsed.dueDate, tags = tags)
+        }
     }
 
     fun setCompleted(todo: TodoEntity, completed: Boolean, announce: Boolean = false) {

@@ -117,9 +117,12 @@ This allows the app and widget to share data:
 
 ## Widget Features
 
-- **Small Widget**: Shows pending task count and next task
-- **Medium Widget**: Shows up to 4 tasks with checkmarks
-- **Large Widget**: Shows up to 9 tasks, separated by pending/completed
+- **Small Widget**: Shows pending task count, progress, and next task
+- **Medium Widget**: Shows pending count and up to 4 tasks with checkmarks
+- **Large Widget**: Shows task stats and up to 8 tasks
+- **Extra Large Widget**: Shows task stats and up to 18 tasks in two columns
+
+Right-click a widget and choose **Edit "Tudu"** to pick All Tasks, Today, or High Priority, and whether completed tasks appear.
 
 The widget updates:
 - Every 15 minutes automatically

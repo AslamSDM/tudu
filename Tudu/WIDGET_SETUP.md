@@ -138,20 +138,22 @@ Make sure your widget extension has a proper bundle ID:
 ## 📱 Widget Features
 
 ### Small Widget
-- Shows pending task count
-- Displays next task to do
-- Perfect for glanceable information
+- Shows pending task count and progress
+- Displays next task to do, with a checkbox
 
 ### Medium Widget
-- Shows up to 4 tasks
-- Completion checkmarks
-- Task count badge
+- Shows pending count and progress
+- Shows up to 4 tasks with checkboxes
 
 ### Large Widget
-- Shows up to 9 tasks
-- Separates pending and completed
-- Full statistics (Total, Pending, Done)
-- Scrollable list
+- Shows up to 8 tasks with checkboxes
+- Shows stats (To do, Overdue, Done)
+
+### Extra Large Widget
+- Shows up to 18 tasks in two columns
+- Shows stats (To do, Overdue, Done)
+
+Right-click a widget and choose **Edit "Tudu"** to pick All Tasks, Today, or High Priority, and whether completed tasks appear.
 
 ---
 
