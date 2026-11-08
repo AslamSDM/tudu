@@ -104,14 +104,11 @@ They are not case-sensitive.
 - With a tag list or tag filter selected, new tasks get that tag. On the Mac, new
   tasks in Today are due today unless you type another date.
 
-## Screenshots
+## See it in action
 
-[Add screenshots of the app and widgets here]
+[Watch the one-minute overview](https://github.com/AslamSDM/tudu/releases/download/v1.1.0/tudu-launch.mp4)
 
 ## Installation
-
-> Sync, the redesigned UI, and the Android app are newer than every published
-> release. To get them now, [build from source](#building-from-source).
 
 ### Using Homebrew
 
@@ -127,9 +124,15 @@ brew install --cask tudu
 3. Move `Tudu.app` to your Applications folder
 4. Open Tudu from Applications
 
+Release builds are not notarized. If macOS blocks the first launch, open
+**System Settings → Privacy & Security** and click **Open Anyway**.
+
 ### Android
 
-No APK is published yet. Build it and install it with `adb`, as described in
+Download `Tudu-<version>-android-debug.apk` from
+[Releases](https://github.com/AslamSDM/tudu/releases) and install it, or run
+`adb install` on it. It needs Android 8.0 or later. The APK is debug-signed, so
+Android may warn you before you install it. To build it yourself, see
 [`android/README.md`](android/README.md).
 
 ## Widget Setup
