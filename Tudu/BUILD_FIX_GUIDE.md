@@ -39,7 +39,7 @@ You now have 3 files:
 2. Select **Tudu** target
 3. Go to **Signing & Capabilities** tab
 4. Click **+ Capability** → Add **App Groups**
-5. Click **+** button and add: `group.com.example.todowidget`
+5. Click **+** button and add: `group.com.Tudu`
 6. Make sure the checkbox next to it is CHECKED ✅
 
 #### For Widget Extension (TuduWidget target):
@@ -47,7 +47,7 @@ You now have 3 files:
 2. Select **TuduWidget** target
 3. Go to **Signing & Capabilities** tab
 4. Click **+ Capability** → Add **App Groups**
-5. Click **+** and add the SAME: `group.com.example.todowidget`
+5. Click **+** and add the SAME: `group.com.Tudu`
 6. Make sure the checkbox next to it is CHECKED ✅
 
 ### 3. Clean and Rebuild
@@ -102,7 +102,7 @@ Run this checklist:
 - [ ] SharedModels.swift exists and has both targets checked
 - [ ] TuduApp.swift only has Tudu target checked
 - [ ] TuduWidget.swift only has TuduWidget target checked
-- [ ] Both targets have the same App Group: `group.com.example.todowidget`
+- [ ] Both targets have the same App Group: `group.com.Tudu`
 - [ ] App Group is enabled (checkbox checked) in both targets
 - [ ] Clean build completed (⌘⇧K)
 - [ ] Main app builds successfully

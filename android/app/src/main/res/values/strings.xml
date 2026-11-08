@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Tudu</string>
+    <string name="widget_name">Tudu tasks</string>
+    <string name="widget_description">Your pending tasks. Tick to complete, + to add.</string>
+</resources>
