@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.Tudu</string>
+		<string>545VUAAWM7.group.com.Tudu</string>
 	</array>
 	<key>com.apple.security.network.client</key>
 	<true/>

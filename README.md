@@ -165,9 +165,10 @@ open Tudu.xcodeproj
 ./build_release.sh 1.0.0
 ```
 
-The app and widget use an App Group, so a signed build needs an Apple account in
-**Xcode → Settings → Accounts**. Without one, widgets may not appear or may not
-see your tasks.
+The app and widget share an App Group, so sign both with an Apple Development
+certificate from the team in the group name (see [App Groups](#app-groups)). An
+ad-hoc build runs, but macOS blocks its widget from reading your tasks, so the
+widget stays empty.
 
 The other two parts build on their own:
 
@@ -239,8 +240,12 @@ widget targets. The quick add rules exist twice, in `SharedModels.swift` and
 The app and widget share data through an App Group:
 
 ```
-group.com.Tudu
+545VUAAWM7.group.com.Tudu
 ```
+
+The Team ID prefix lets macOS verify the group from the code signature alone, with
+no provisioning profile. **If you build under another team, replace `545VUAAWM7`
+with your Team ID.**
 
 The identifier is defined once in `Tudu/SharedModels.swift`
 (`SharedTodoData.suiteName`) and must match the `application-groups`
@@ -250,7 +255,9 @@ places.
 
 On first launch the app migrates tasks from the previous App Group
 (`group.com.example.todowidget`) and from standard `UserDefaults`, so upgrading
-does not lose your list.
+does not lose your list. It also copies tasks and sync settings from the older
+unprefixed `group.com.Tudu`. Only the app's entitlements still list that group,
+and only for this copy.
 
 ## Requirements
 
