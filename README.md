@@ -104,14 +104,11 @@ They are not case-sensitive.
 - With a tag list or tag filter selected, new tasks get that tag. On the Mac, new
   tasks in Today are due today unless you type another date.
 
-## Screenshots
+## See it in action
 
-[Add screenshots of the app and widgets here]
+[Watch the one-minute overview](https://github.com/AslamSDM/tudu/releases/download/v1.1.0/tudu-launch.mp4)
 
 ## Installation
-
-> Sync, the redesigned UI, and the Android app are newer than every published
-> release. To get them now, [build from source](#building-from-source).
 
 ### Using Homebrew
 
@@ -127,9 +124,15 @@ brew install --cask tudu
 3. Move `Tudu.app` to your Applications folder
 4. Open Tudu from Applications
 
+Release builds are not notarized. If macOS blocks the first launch, open
+**System Settings → Privacy & Security** and click **Open Anyway**.
+
 ### Android
 
-No APK is published yet. Build it and install it with `adb`, as described in
+Download `Tudu-<version>-android-debug.apk` from
+[Releases](https://github.com/AslamSDM/tudu/releases) and install it, or run
+`adb install` on it. It needs Android 8.0 or later. The APK is debug-signed, so
+Android may warn you before you install it. To build it yourself, see
 [`android/README.md`](android/README.md).
 
 ## Widget Setup
@@ -165,9 +168,10 @@ open Tudu.xcodeproj
 ./build_release.sh 1.0.0
 ```
 
-The app and widget use an App Group, so a signed build needs an Apple account in
-**Xcode → Settings → Accounts**. Without one, widgets may not appear or may not
-see your tasks.
+The app and widget share an App Group, so sign both with an Apple Development
+certificate from the team in the group name (see [App Groups](#app-groups)). An
+ad-hoc build runs, but macOS blocks its widget from reading your tasks, so the
+widget stays empty.
 
 The other two parts build on their own:
 
@@ -239,8 +243,12 @@ widget targets. The quick add rules exist twice, in `SharedModels.swift` and
 The app and widget share data through an App Group:
 
 ```
-group.com.Tudu
+545VUAAWM7.group.com.Tudu
 ```
+
+The Team ID prefix lets macOS verify the group from the code signature alone, with
+no provisioning profile. **If you build under another team, replace `545VUAAWM7`
+with your Team ID.**
 
 The identifier is defined once in `Tudu/SharedModels.swift`
 (`SharedTodoData.suiteName`) and must match the `application-groups`
@@ -250,7 +258,9 @@ places.
 
 On first launch the app migrates tasks from the previous App Group
 (`group.com.example.todowidget`) and from standard `UserDefaults`, so upgrading
-does not lose your list.
+does not lose your list. It also copies tasks and sync settings from the older
+unprefixed `group.com.Tudu`. Only the app's entitlements still list that group,
+and only for this copy.
 
 ## Requirements
 

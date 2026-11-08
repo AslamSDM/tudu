@@ -384,11 +384,17 @@ public extension Date {
 /// Storage holds every record, including deletion tombstones, plus the set of
 /// ids changed locally since the last successful sync push.
 public enum SharedTodoData {
-    public static let suiteName = "group.com.Tudu"
+    ///
+    /// The Team ID prefix lets macOS verify the group from the code signature
+    /// alone. An unprefixed group needs a provisioning profile; without one,
+    /// macOS asks the user for permission, which a widget cannot do, so the
+    /// widget would read an empty list. Change the prefix if you build under
+    /// another team.
+    public static let suiteName = "545VUAAWM7.group.com.Tudu"
 
     /// Darwin notification posted after any process writes the task list, so
     /// the app picks up changes made from the widget immediately.
-    public static let didChangeNotification = "group.com.Tudu.todosChanged"
+    public static let didChangeNotification = "\(suiteName).todosChanged"
 
     /// App Group identifiers used by earlier builds. Used once to migrate
     /// existing tasks so nobody loses their list.
@@ -398,12 +404,44 @@ public enum SharedTodoData {
     private static let pendingKey = "SyncPendingIDs"
     private static let migrationKey = "DidMigrateToSharedSuite_v1"
 
+    /// The group used before the Team ID prefix. Only the app's entitlements
+    /// still list it, so that the app can copy the data across once.
+    private static let unprefixedSuiteName = "group.com.Tudu"
+    private static let unprefixedMigrationKey = "DidMigrateFromUnprefixedSuite_v1"
+    private static let unprefixedKeys = [
+        saveKey, pendingKey, migrationKey,
+        "SyncServerURL", "SyncKey", "SyncCursor", "SyncLastSuccess"
+    ]
+
+    /// The widget cannot read older groups, so it must never run a migration
+    /// or mark one as done.
+    private static let isExtension = Bundle.main.bundleURL.pathExtension == "appex"
+
     /// Serializes read-modify-write cycles inside one process.
     private static let lock = NSRecursiveLock()
 
     static var defaults: UserDefaults {
-        UserDefaults(suiteName: suiteName) ?? .standard
+        _ = unprefixedMigration
+        return UserDefaults(suiteName: suiteName) ?? .standard
     }
+
+    /// Runs once per process, before anything reads the shared defaults.
+    private static let unprefixedMigration: Void = {
+        guard !isExtension, let current = UserDefaults(suiteName: suiteName),
+              !current.bool(forKey: unprefixedMigrationKey) else { return }
+
+        if let old = UserDefaults(suiteName: unprefixedSuiteName) {
+            for key in unprefixedKeys where current.object(forKey: key) == nil {
+                if let value = old.object(forKey: key) { current.set(value, forKey: key) }
+            }
+        }
+
+        // Not marked done until tasks exist, so a launch where macOS denied
+        // access to the old group can try again.
+        if current.object(forKey: saveKey) != nil {
+            current.set(true, forKey: unprefixedMigrationKey)
+        }
+    }()
 
     // MARK: Loading
 
@@ -547,7 +585,7 @@ public enum SharedTodoData {
 
     private static func migrateIfNeeded() {
         let current = defaults
-        guard current.data(forKey: saveKey) == nil,
+        guard !isExtension, current.data(forKey: saveKey) == nil,
               current.bool(forKey: migrationKey) == false else { return }
 
         current.set(true, forKey: migrationKey)
